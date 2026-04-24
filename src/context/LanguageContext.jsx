@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getAITranslation } from '../services/aiTranslation';
 
 const LanguageContext = createContext(null);
 
@@ -535,7 +536,19 @@ export const LanguageProvider = ({ children }) => {
   }, [language]);
 
   const t = (key) => {
-    return TRANSLATIONS[language]?.[key] || TRANSLATIONS['en'][key] || key;
+    // 1. If English, just return English dictionary or key
+    if (language === 'en') {
+      return TRANSLATIONS['en'][key] || key;
+    }
+    
+    // 2. If we have a local static translation, use it
+    if (TRANSLATIONS[language] && TRANSLATIONS[language][key]) {
+      return TRANSLATIONS[language][key];
+    }
+    
+    // 3. Otherwise, use the English text (or the key) and pass it to the AI Model
+    const englishText = TRANSLATIONS['en'][key] || key;
+    return getAITranslation(englishText, language);
   };
 
   return (
