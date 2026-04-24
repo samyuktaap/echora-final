@@ -99,7 +99,7 @@ const TaskBoard = () => {
           phone: '+91 99999 00000',
           address: 'Default City, India',
           dob: '2000-01-01',
-          id_proof_type: 'Aadhar Card',
+          id_proof_type: 'Aadhar',
           id_proof_number: 'XXXX-XXXX-1234'
         };
         const { data: newDetails, error: insertError } = await supabase.from('volunteer_details').insert(mockDetails).select().single();
