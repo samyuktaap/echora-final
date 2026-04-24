@@ -16,9 +16,8 @@ const Sidebar = ({ onClose }) => {
     
     // NGO & Admin Only Section
     ...(profile?.role === 'ngo' || profile?.role === 'admin' ? [
-      { to: '/ngo-dashboard', icon: Zap, label: 'Volunteer Apps' },
-      { to: '/ngo-requests', icon: Building, label: t('navNGORequests') },
-      { to: '/ngo-form', icon: PlusCircle, label: t('navNGOForm') },
+      { to: '/ngo-dashboard', icon: Zap, label: 'Manage Applications' },
+      { to: '/ngo-form', icon: PlusCircle, label: 'Post Opportunity' },
     ] : []),
 
     { to: '/meetups', icon: Calendar, label: t('navMeetups') },

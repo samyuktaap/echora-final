@@ -1,176 +1,209 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { SKILLS_LIST, INDIA_STATES } from '../data/mockData';
 
+const CAUSES = ['Education', 'Healthcare', 'Technology', 'Community', 'Environment', 'Animal Welfare', 'Women Empowerment'];
+
 const NGOForm = () => {
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({
-    ngoName: '',
-    ngoRegistration: '',
-    email: '',
-    phone: '',
+    title: '',
+    description: '',
+    cause: '',
     location: '',
     state: '',
-    taskDescription: '',
-    requiredSkills: [],
-    taskDate: '',
-    additionalInfo: '',
+    required_skills: [],
+    min_experience: 'Beginner',
+    availability: 'Flexible',
+    urgency: 'medium',
+    spots: 1,
+    deadline: '',
+    additional_info: '',
   });
 
-  const set = (key) => (e) => {
-    const val = e.target.value;
-    setForm(p => ({ ...p, [key]: val }));
-  };
+  const set = (key) => (e) => setForm(p => ({ ...p, [key]: e.target.value }));
 
   const toggleSkill = (s) => setForm(p => ({
     ...p,
-    requiredSkills: p.requiredSkills.includes(s)
-      ? p.requiredSkills.filter(x => x !== s)
-      : [...p.requiredSkills, s]
+    required_skills: p.required_skills.includes(s)
+      ? p.required_skills.filter(x => x !== s)
+      : [...p.required_skills, s],
   }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.ngoName || !form.location || !form.taskDescription) {
+    if (!form.title || !form.location || !form.description) {
       toast.error('Fill in all required fields');
       return;
     }
+    if (!user) {
+      toast.error('You must be logged in');
+      return;
+    }
+
     setSubmitting(true);
-    await new Promise(r => setTimeout(r, 1000));
-    
-    // Save locally
-    const saved = JSON.parse(localStorage.getItem('ngo_requests') || '[]');
-    saved.push({ id: Date.now(), ...form, submittedAt: new Date().toISOString() });
-    localStorage.setItem('ngo_requests', JSON.stringify(saved));
-    
-    setSubmitting(false);
-    setSubmitted(true);
-    toast.success('✓ Request submitted! Our team will review and activate your posting.');
-    
-    setTimeout(() => {
-      setForm({
-        ngoName: '',
-        ngoRegistration: '',
-        email: '',
-        phone: '',
-        location: '',
-        state: '',
-        taskDescription: '',
-        requiredSkills: [],
-        taskDate: '',
-        additionalInfo: '',
+    try {
+      const { error } = await supabase.from('ngo_tasks').insert({
+        ngo_id: user.id,
+        ngo_name: profile?.name || 'Unknown NGO',
+        title: form.title,
+        description: form.description,
+        cause: form.cause,
+        location: form.location,
+        state: form.state,
+        required_skills: form.required_skills,
+        min_experience: form.min_experience,
+        availability: form.availability,
+        urgency: form.urgency,
+        spots: Number(form.spots),
+        deadline: form.deadline,
+        active: true,
       });
-      setSubmitted(false);
-    }, 2000);
+
+      if (error) throw error;
+
+      toast.success('Volunteer opportunity posted! Volunteers can now apply.');
+      navigate('/ngo-dashboard');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to post: ' + err.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  if (submitted) {
-    return (
-      <div className="page-container">
-        <div className="card" style={{ maxWidth: 600, margin: '4rem auto' }}>
-          <div style={{ textAlign: 'center', padding: '3rem' }}>
-            <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>✓</div>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.5rem', fontFamily: 'var(--font-display)' }}>Request Submitted!</h2>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: 1.7 }}>
-              Thank you for submitting your volunteer opportunity request. Our team will review it within 24 hours and activate it on the platform. You'll receive an email confirmation.
-            </p>
-            <div style={{ background: 'var(--bg-input)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '1.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-              <strong style={{ color: 'var(--text-primary)' }}>📋 Your Submission:</strong><br />
-              <strong>{form.ngoName}</strong> in {form.location}, {form.state}<br />
-              <strong style={{ color: 'var(--gold-mid)' }}>Skills needed:</strong> {form.requiredSkills.join(', ')}
-            </div>
-            <a href="/dashboard" style={{ color: 'var(--gold-mid)', fontWeight: 600, textDecoration: 'underline' }}>← Back to Dashboard</a>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const inp = 'form-input';
+  const sel = 'form-select';
 
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1 className="page-title">Submit NGO Request</h1>
-        <p className="page-subtitle">Post a volunteer opportunity for your organization</p>
+        <h1 className="page-title">Post a Volunteer Opportunity</h1>
+        <p className="page-subtitle">Volunteers will see this and apply directly to you</p>
       </div>
 
       <div className="card card-gold" style={{ maxWidth: 800, margin: '0 auto' }}>
         <div className="card-body">
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, fontFamily: 'var(--font-display)' }}>Organization Details</h3>
 
-            <div className="grid-2">
-              <div className="form-group">
-                <label className="form-label">NGO / Organization Name *</label>
-                <input className="form-input" placeholder="Hope Foundation" value={form.ngoName} onChange={set('ngoName')} required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Registration Number</label>
-                <input className="form-input" placeholder="e.g. 12AB34567" value={form.ngoRegistration} onChange={set('ngoRegistration')} />
-              </div>
-            </div>
-
-            <div className="grid-2">
-              <div className="form-group">
-                <label className="form-label">Email *</label>
-                <input className="form-input" type="email" placeholder="contact@ngo.org" value={form.email} onChange={set('email')} required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Phone</label>
-                <input className="form-input" placeholder="+91 98765 43210" value={form.phone} onChange={set('phone')} />
-              </div>
-            </div>
-
-            <div className="divider" />
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, fontFamily: 'var(--font-display)' }}>Task Details</h3>
-
+            {/* Role title */}
             <div className="form-group">
-              <label className="form-label">Task Description *</label>
-              <textarea className="form-textarea" placeholder="Describe the volunteer opportunity... What will they be doing? Who will they help? What's the impact?" value={form.taskDescription} onChange={set('taskDescription')} required style={{ minHeight: 100 }} />
+              <label className="form-label">Role / Title *</label>
+              <input className={inp} placeholder="e.g. English Teaching Assistant" value={form.title} onChange={set('title')} required />
+            </div>
+
+            {/* Description */}
+            <div className="form-group">
+              <label className="form-label">Description *</label>
+              <textarea className="form-textarea" placeholder="What will volunteers do? What impact will they make?" value={form.description} onChange={set('description')} required style={{ minHeight: 100 }} />
             </div>
 
             <div className="grid-2">
+              {/* Cause */}
               <div className="form-group">
-                <label className="form-label">Location / City *</label>
-                <input className="form-input" placeholder="Mumbai" value={form.location} onChange={set('location')} required />
+                <label className="form-label">Cause</label>
+                <select className={sel} value={form.cause} onChange={set('cause')}>
+                  <option value="">Select cause</option>
+                  {CAUSES.map(c => <option key={c}>{c}</option>)}
+                </select>
               </div>
+              {/* Urgency */}
               <div className="form-group">
-                <label className="form-label">State</label>
-                <select className="form-select" value={form.state} onChange={set('state')}>
-                  <option value="">Select State</option>
-                  {INDIA_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                <label className="form-label">Urgency</label>
+                <select className={sel} value={form.urgency} onChange={set('urgency')}>
+                  <option value="high">🔴 High — Immediate need</option>
+                  <option value="medium">🟡 Medium — Within a month</option>
+                  <option value="low">🟢 Low — Open-ended</option>
                 </select>
               </div>
             </div>
 
             <div className="grid-2">
+              {/* Location */}
               <div className="form-group">
-                <label className="form-label">Preferred Start Date</label>
-                <input className="form-input" type="date" value={form.taskDate} onChange={set('taskDate')} />
+                <label className="form-label">City *</label>
+                <input className={inp} placeholder="e.g. Mumbai" value={form.location} onChange={set('location')} required />
+              </div>
+              {/* State */}
+              <div className="form-group">
+                <label className="form-label">State</label>
+                <select className={sel} value={form.state} onChange={set('state')}>
+                  <option value="">Select State</option>
+                  {INDIA_STATES.map(s => <option key={s}>{s}</option>)}
+                </select>
               </div>
             </div>
 
+            <div className="grid-2">
+              {/* Availability */}
+              <div className="form-group">
+                <label className="form-label">Availability Required</label>
+                <select className={sel} value={form.availability} onChange={set('availability')}>
+                  <option value="Weekdays">Weekdays</option>
+                  <option value="Weekends">Weekends</option>
+                  <option value="Flexible">Flexible</option>
+                  <option value="Full-time">Full-time</option>
+                </select>
+              </div>
+              {/* Min experience */}
+              <div className="form-group">
+                <label className="form-label">Min. Experience</label>
+                <select className={sel} value={form.min_experience} onChange={set('min_experience')}>
+                  <option value="Beginner">Any (Beginner OK)</option>
+                  <option value="Intermediate">Intermediate (1–2 yrs)</option>
+                  <option value="Expert">Expert (3+ yrs)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid-2">
+              {/* Spots */}
+              <div className="form-group">
+                <label className="form-label">Spots Available</label>
+                <input className={inp} type="number" min={1} value={form.spots} onChange={set('spots')} />
+              </div>
+              {/* Deadline */}
+              <div className="form-group">
+                <label className="form-label">Application Deadline</label>
+                <input className={inp} type="date" value={form.deadline} onChange={set('deadline')} />
+              </div>
+            </div>
+
+            {/* Skills */}
             <div className="form-group">
               <label className="form-label">Required Skills</label>
               <div className="chip-group">
                 {SKILLS_LIST.map(s => (
-                  <div key={s} className={`chip ${form.requiredSkills.includes(s) ? 'selected' : ''}`} onClick={() => toggleSkill(s)}>{s}</div>
+                  <div
+                    key={s}
+                    className={`chip ${form.required_skills.includes(s) ? 'selected' : ''}`}
+                    onClick={() => toggleSkill(s)}
+                  >
+                    {s}
+                  </div>
                 ))}
               </div>
             </div>
 
+            {/* Additional info */}
             <div className="form-group">
               <label className="form-label">Additional Information</label>
-              <textarea className="form-textarea" placeholder="Any other details volunteers should know?" value={form.additionalInfo} onChange={set('additionalInfo')} style={{ minHeight: 80 }} />
-            </div>
-
-            <div style={{ background: 'rgba(201,168,76,0.07)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: '12px', padding: '1rem', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-              <strong style={{ color: 'var(--gold-mid)' }}>ℹ️ Note:</strong> All NGO requests are verified by our team within 24 hours. Once approved, your opportunity will be visible to {1248} volunteers across India. Ensure your details are accurate and complete.
+              <textarea className="form-textarea" placeholder="Anything else volunteers should know?" value={form.additional_info} onChange={set('additional_info')} style={{ minHeight: 80 }} />
             </div>
 
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => navigate('/ngo-dashboard')}>
+                Cancel
+              </button>
               <button type="submit" className="btn btn-primary btn-lg" disabled={submitting}>
-                {submitting ? <><span className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }} /> Submitting...</> : '→ Submit Request'}
+                {submitting
+                  ? <><span className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }} /> Posting...</>
+                  : '→ Post Opportunity'}
               </button>
             </div>
           </form>

@@ -1,26 +1,45 @@
 // src/pages/TaskBoard.jsx
-import React, { useState, useEffect } from 'react';
-import { mockNGORequests, INDIA_STATES, SKILLS_LIST } from '../data/mockData';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { MapPin, Clock, Users, Briefcase, Calendar, Check, Search, Filter, SlidersHorizontal, ArrowRight } from 'lucide-react';
+import { MapPin, Clock, Users, Briefcase, Calendar, Check, Search, Filter, SlidersHorizontal, ArrowRight, Zap, Target } from 'lucide-react';
+import { INDIA_STATES } from '../data/mockData';
 
 // ── SCORING FUNCTION ──────────────────────────────────────────────────────────
-export function calculateMatchScore(volunteer, task) {
+export function calculateMatchScore(profile, task) {
+  if (!profile) return 0;
   let score = 0;
-  const matchedSkills = (task.requiredSkills || []).filter(skill => (volunteer.skills || []).includes(skill));
-  score += matchedSkills.length * 40;
-  score += Math.min((volunteer.points || 0) / 10, 30);
-  score += Math.min((volunteer.badges || []).length * 10, 30);
-  if (volunteer.experience === 'Expert') score += 20;
-  else if (volunteer.experience === 'Intermediate') score += 10;
-  score += Math.min((volunteer.tasksCompleted || 0) * 2, 20);
-  return Math.round(score);
+
+  // Skills overlap — 50pts
+  const mySkills = (profile.skills || []).map(s => s.toLowerCase());
+  const needed = (task.required_skills || []).map(s => s.toLowerCase());
+  if (needed.length > 0) {
+    const matched = needed.filter(s => mySkills.includes(s)).length;
+    score += Math.round((matched / needed.length) * 50);
+  } else {
+    score += 25; // no skills required = anyone qualifies
+  }
+
+  // Location — 30pts
+  const myCity = (profile.location || '').toLowerCase();
+  const taskCity = (task.location || '').toLowerCase();
+  if (myCity && taskCity && (myCity === taskCity || myCity.includes(taskCity) || taskCity.includes(myCity))) {
+    score += 30;
+  }
+
+  // Points & Experience — 20pts
+  score += Math.min((profile.points || 0) / 50, 10);
+  const expRank = { Beginner: 0, Intermediate: 1, Expert: 2 };
+  if ((expRank[profile.experience] || 0) >= (expRank[task.min_experience] || 0)) {
+    score += 10;
+  }
+
+  return Math.min(score, 100);
 }
 
 const MatchIndicator = ({ percent }) => {
-  const color = percent > 80 ? '#22c55e' : percent > 40 ? '#f59e0b' : '#ef4444';
+  const color = percent >= 80 ? '#22c55e' : percent >= 45 ? '#f59e0b' : '#ef4444';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.03)', padding: '0.4rem 0.8rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
       <div style={{ position: 'relative', width: 32, height: 32 }}>
@@ -31,231 +50,290 @@ const MatchIndicator = ({ percent }) => {
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800 }}>{percent}</div>
       </div>
       <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-        {percent >= 80 ? 'Perfect fit' : percent >= 40 ? 'Partial fit' : 'Low match'}
+        {percent >= 80 ? 'Perfect match' : percent >= 45 ? 'Qualified' : 'Requires review'}
       </span>
     </div>
   );
 };
 
 const TaskBoard = () => {
-  const { user } = useAuth();
-  const [filterState, setFilterState] = useState('');
-  const [filterSkill, setFilterSkill] = useState('');
+  const { user, profile } = useAuth();
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [appliedIds, setAppliedIds] = useState(new Set());
   const [search, setSearch] = useState('');
-  const [applied, setApplied] = useState(new Set());
-  const [expandedId, setExpandedId] = useState(null);
-  const [sortBy, setSortBy] = useState('match');
-  const [mySkills, setMySkills] = useState([]);
+  const [filterState, setFilterState] = useState('');
+  const [filterCause, setFilterCause] = useState('');
   const [showMySkillsOnly, setShowMySkillsOnly] = useState(false);
+  const [sortBy, setSortBy] = useState('match');
   const [applyingId, setApplyingId] = useState(null);
   const [message, setMessage] = useState('');
   const [showMessageFor, setShowMessageFor] = useState(null);
-  const [volunteerProfile, setVolunteerProfile] = useState(null);
 
   useEffect(() => {
-    if (!user) return;
-    async function fetchProfile() {
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      if (data) {
-        setMySkills(data.skills || []);
-        setVolunteerProfile(data);
-      }
-      const { data: apps } = await supabase.from('ngo_applications').select('task_id').eq('volunteer_id', user.id);
-      if (apps) setApplied(new Set(apps.map(a => String(a.task_id))));
-    }
-    fetchProfile();
+    fetchTasks();
+    if (user) fetchApplications();
   }, [user]);
 
-  const filtered = mockNGORequests.filter(t => {
-    const matchState = !filterState || t.state === filterState;
-    const matchSkill = !filterSkill || t.requiredSkills?.includes(filterSkill);
-    const matchSearch = !search || t.ngoName.toLowerCase().includes(search.toLowerCase()) || t.taskDescription.toLowerCase().includes(search.toLowerCase());
-    const matchMySkills = !showMySkillsOnly || (mySkills.length > 0 && t.requiredSkills?.some(s => mySkills.includes(s)));
-    return matchState && matchSkill && matchSearch && matchMySkills;
-  });
+  async function fetchTasks() {
+    try {
+      const { data, error } = await supabase
+        .from('ngo_tasks')
+        .select('*')
+        .eq('active', true)
+        .order('created_at', { ascending: false });
 
-  const sorted = [...filtered].sort((a, b) => {
-    if (sortBy === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
-    if (sortBy === 'match' && volunteerProfile) return calculateMatchScore(volunteerProfile, b) - calculateMatchScore(volunteerProfile, a);
-    return 0;
-  });
+      if (error) throw error;
+      setTasks(data || []);
+    } catch (err) {
+      toast.error('Failed to load opportunities');
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  const getMatchPercent = (task) => {
-    if (!mySkills.length || !task.requiredSkills?.length) return 0;
-    const matched = task.requiredSkills.filter(s => mySkills.includes(s));
-    return Math.round((matched.length / task.requiredSkills.length) * 100);
-  };
+  async function fetchApplications() {
+    try {
+      const { data } = await supabase
+        .from('ngo_applications')
+        .select('task_id')
+        .eq('volunteer_id', user.id);
+
+      if (data) setAppliedIds(new Set(data.map(a => String(a.task_id))));
+    } catch {}
+  }
+
+  const scoredTasks = useMemo(() => {
+    return tasks
+      .map(t => ({
+        ...t,
+        matchScore: calculateMatchScore(profile, t),
+        matchedSkills: (t.required_skills || []).filter(s => (profile?.skills || []).map(x => x.toLowerCase()).includes(s.toLowerCase()))
+      }))
+      .filter(t => {
+        if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.ngo_name?.toLowerCase().includes(search.toLowerCase())) return false;
+        if (filterState && t.state !== filterState) return false;
+        if (filterCause && t.cause !== filterCause) return false;
+        if (showMySkillsOnly && t.matchedSkills.length === 0) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortBy === 'match') return b.matchScore - a.matchScore;
+        if (sortBy === 'newest') return new Date(b.created_at) - new Date(a.created_at);
+        if (sortBy === 'urgency') {
+          const u = { high: 3, medium: 2, low: 1 };
+          return u[b.urgency] - u[a.urgency];
+        }
+        return 0;
+      });
+  }, [tasks, profile, search, filterState, filterCause, showMySkillsOnly, sortBy]);
+
+  const uniqueCauses = [...new Set(tasks.map(t => t.cause).filter(Boolean))];
 
   const handleApply = async (task) => {
     if (!user) { toast.error('Please log in first'); return; }
     setApplyingId(task.id);
     try {
+      // Ensure volunteer details exist
       let { data: details } = await supabase.from('volunteer_details').select('*').eq('id', user.id).single();
       
       if (!details) {
-        // Auto-create mock details for testing/onboarding if missing
         const mockDetails = {
           id: user.id,
           phone: '+91 99999 00000',
-          address: 'Default City, India',
+          address: profile?.location || 'India',
           dob: '2000-01-01',
           id_proof_type: 'Aadhar',
           id_proof_number: 'XXXX-XXXX-1234'
         };
-        const { data: newDetails, error: insertError } = await supabase.from('volunteer_details').insert(mockDetails).select().single();
-        if (insertError) throw insertError;
+        const { data: newDetails, error: insErr } = await supabase.from('volunteer_details').insert(mockDetails).select().single();
+        if (insErr) throw insErr;
         details = newDetails;
-        toast.success('Auto-created a test profile for you! 🛠️');
       }
 
-      const matchScore = volunteerProfile ? calculateMatchScore(volunteerProfile, task) : 0;
       const { error } = await supabase.from('ngo_applications').insert({
-        volunteer_id: user.id, task_id: String(task.id), task_title: `${task.ngoName} — ${task.taskDescription.slice(0, 60)}`,
-        volunteer_name: volunteerProfile?.name || '', volunteer_email: volunteerProfile?.email || '',
-        phone: details.phone, address: details.address, dob: details.dob, id_proof_type: details.id_proof_type,
-        id_proof_number: details.id_proof_number, message: message, match_score: matchScore, status: 'pending'
+        volunteer_id: user.id,
+        ngo_id: task.ngo_id,
+        task_id: String(task.id),
+        task_title: task.title,
+        volunteer_name: profile?.name || '',
+        volunteer_email: user.email || '',
+        phone: details.phone,
+        address: details.address,
+        dob: details.dob,
+        id_proof_type: details.id_proof_type,
+        id_proof_number: details.id_proof_number,
+        message,
+        match_score: task.matchScore,
+        status: 'pending'
       });
+
       if (error) throw error;
-      setApplied(prev => new Set([...prev, String(task.id)]));
+      setAppliedIds(prev => new Set([...prev, String(task.id)]));
       setShowMessageFor(null);
       setMessage('');
-      toast.success(`✅ Applied! Match score: ${matchScore} pts 🎯`);
-    } catch (err) { toast.error(err.message || 'Application failed'); }
-    finally { setApplyingId(null); }
+      toast.success('Application submitted! 🎯');
+    } catch (err) {
+      toast.error('Failed to apply: ' + err.message);
+    } finally {
+      setApplyingId(null);
+    }
   };
 
   return (
     <div className="page-container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div className="page-header" style={{ marginBottom: '2.5rem' }}>
-        <h1 className="page-title" style={{ fontSize: '2.2rem', fontWeight: 800 }}>Explore Opportunities</h1>
-        <p className="page-subtitle" style={{ fontSize: '1.05rem' }}>Find verified volunteering tasks that match your unique skillset</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+          <Zap style={{ color: 'var(--gold-mid)' }} size={20} />
+          <span style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--gold-mid)', letterSpacing: '0.1em' }}>Opportunity Explorer</span>
+        </div>
+        <h1 className="page-title" style={{ fontSize: '2.5rem', fontWeight: 800 }}>Find Your Next Mission</h1>
+        <p className="page-subtitle" style={{ fontSize: '1.1rem' }}>We've matched your skills with these high-impact tasks across India.</p>
       </div>
 
-      {/* SEARCH & FILTERS BAR */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap', alignItems: 'center', background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: '280px' }}>
+      {/* Filters Bar */}
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2.5rem', flexWrap: 'wrap', alignItems: 'center', background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: '250px' }}>
           <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input className="form-input" placeholder="Search NGOs, tasks, or cities..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: '2.8rem', height: '48px', borderRadius: '12px' }} />
+          <input className="form-input" placeholder="Search NGOs or roles..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: '2.8rem', height: '44px', borderRadius: '10px' }} />
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <select className="form-select" value={filterState} onChange={e => setFilterState(e.target.value)} style={{ height: '48px', borderRadius: '12px', minWidth: '140px' }}>
+          <select className="form-select" value={filterState} onChange={e => setFilterState(e.target.value)} style={{ height: '44px', borderRadius: '10px', minWidth: '130px' }}>
             <option value="">All States</option>
             {INDIA_STATES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <select className="form-select" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ height: '48px', borderRadius: '12px', minWidth: '140px' }}>
-            <option value="match">Best Match</option>
-            <option value="newest">Newest First</option>
+          <select className="form-select" value={filterCause} onChange={e => setFilterCause(e.target.value)} style={{ height: '44px', borderRadius: '10px', minWidth: '130px' }}>
+            <option value="">All Causes</option>
+            {uniqueCauses.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-          <button onClick={() => setShowMySkillsOnly(!showMySkillsOnly)} style={{ height: '48px', borderRadius: '12px', padding: '0 1rem', background: showMySkillsOnly ? 'var(--gold-grad)' : 'rgba(255,255,255,0.05)', color: showMySkillsOnly ? '#1a0e05' : 'var(--text-primary)', border: '1px solid var(--border-color)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-             <SlidersHorizontal size={16} /> {showMySkillsOnly ? 'Matches Only' : 'All Tasks'}
+          <select className="form-select" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ height: '44px', borderRadius: '10px' }}>
+            <option value="match">Sort: Match Score</option>
+            <option value="urgency">Sort: Urgency</option>
+            <option value="newest">Sort: Newest</option>
+          </select>
+          <button onClick={() => setShowMySkillsOnly(!showMySkillsOnly)} style={{ height: '44px', borderRadius: '10px', padding: '0 1rem', background: showMySkillsOnly ? 'rgba(201,168,76,0.1)' : 'transparent', color: showMySkillsOnly ? 'var(--gold-mid)' : 'var(--text-muted)', border: '1px solid', borderColor: showMySkillsOnly ? 'var(--gold-mid)' : 'var(--border-color)', fontWeight: 600, cursor: 'pointer' }}>
+             {showMySkillsOnly ? '✨ Skill Matches' : 'All Tasks'}
           </button>
         </div>
       </div>
 
-      {/* TASK LIST */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        {sorted.length === 0 ? (
-          <div className="card" style={{ padding: '4rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔍</div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>No opportunities found</h3>
-            <p style={{ color: 'var(--text-muted)' }}>Try adjusting your search or filters to see more results.</p>
-          </div>
-        ) : sorted.map(task => {
-          const matchPct = getMatchPercent(task);
-          const isApplied = applied.has(String(task.id));
-          const showMsg = showMessageFor === task.id;
+      {/* Task List */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '5rem' }}>
+          <div className="spinner" style={{ width: 48, height: 48, margin: '0 auto 1.5rem' }} />
+          <p style={{ color: 'var(--text-muted)' }}>Fetching the best matches for you...</p>
+        </div>
+      ) : scoredTasks.length === 0 ? (
+        <div className="card" style={{ padding: '5rem', textAlign: 'center', borderStyle: 'dashed' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1.5rem', opacity: 0.3 }}>🔍</div>
+          <h3 style={{ fontSize: '1.3rem', fontWeight: 800 }}>No opportunities found</h3>
+          <p style={{ color: 'var(--text-muted)' }}>Try adjusting your filters or search terms.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {scoredTasks.map((task, i) => {
+            const isApplied = appliedIds.has(String(task.id));
+            const showMsg = showMessageFor === task.id;
+            const isTopMatch = i === 0 && task.matchScore >= 80;
 
-          return (
-            <div key={task.id} className="card card-hover" style={{ borderRadius: '20px', padding: '1.75rem', border: '1px solid var(--border-color)', position: 'relative' }}>
-              <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
-                {/* NGO Info */}
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                      <div style={{ width: 48, height: 48, borderRadius: '12px', background: 'var(--primary-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0 }}>
-                        {task.ngoName.charAt(0)}
+            return (
+              <div key={task.id} className="card card-hover" style={{ 
+                borderRadius: '24px', padding: '1.75rem', border: '1px solid var(--border-color)', position: 'relative',
+                background: isTopMatch ? 'rgba(201,168,76,0.02)' : 'var(--bg-card)',
+                boxShadow: isTopMatch ? '0 0 40px rgba(201,168,76,0.05)' : 'none'
+              }}>
+                {isTopMatch && (
+                  <div style={{ position: 'absolute', top: 12, right: 20, display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--gold-mid)', fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    <Target size={14} /> Recommended Match
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+                         <div style={{ width: 56, height: 56, borderRadius: '16px', background: 'var(--primary-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', fontWeight: 800, color: 'white' }}>
+                           {task.ngo_name?.charAt(0) || 'N'}
+                         </div>
+                         <div>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.2rem' }}>{task.ngo_name}</div>
+                            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'white', margin: 0 }}>{task.title}</h2>
+                         </div>
                       </div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
-                          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>{task.ngoName}</h3>
-                          <Check size={14} style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.1)', borderRadius: '50%', padding: '2px' }} />
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{task.taskDescription.split('—')[0].split('-')[0].trim()}</h2>
-                        </div>
+                      <MatchIndicator percent={task.matchScore} />
+                    </div>
+
+                    <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+                      {task.description}
+                    </p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                         <MapPin size={14} /> {task.location}
+                       </div>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                         <Clock size={14} /> {task.availability}
+                       </div>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                         <Users size={14} /> {task.spots} spots
+                       </div>
+                       {task.deadline && (
+                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                           <Calendar size={14} /> Deadline: {task.deadline}
+                         </div>
+                       )}
+                    </div>
+
+                    {/* Skills */}
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.75rem' }}>
+                      {task.required_skills?.map(s => {
+                        const isMatch = task.matchedSkills.includes(s);
+                        return (
+                          <span key={s} style={{ 
+                            background: isMatch ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.03)',
+                            color: isMatch ? '#4ade80' : 'var(--text-muted)',
+                            border: '1px solid', borderColor: isMatch ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.05)',
+                            padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 700,
+                            display: 'flex', alignItems: 'center', gap: '0.3rem'
+                          }}>
+                            {isMatch && <Check size={12} />} {s}
+                          </span>
+                        );
+                      })}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                         Urgency: <span style={{ color: task.urgency === 'high' ? '#ef4444' : task.urgency === 'medium' ? '#f59e0b' : '#22c55e', fontWeight: 700, textTransform: 'uppercase' }}>{task.urgency}</span>
                       </div>
-                    </div>
-                    <MatchIndicator percent={matchPct} />
-                  </div>
-
-                  <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '1.25rem' }}>
-                    {task.taskDescription}
-                  </p>
-
-                  {/* Stats Bar */}
-                  <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '1.5rem', padding: '0.75rem 0', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                      <MapPin size={14} /> {task.location}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                      <Clock size={14} /> Flexible
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                      <Briefcase size={14} /> 1+ yr exp
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                      <Users size={14} /> 6 spots left
-                    </div>
-                  </div>
-
-                  {/* Skills Tags */}
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-                    {task.requiredSkills?.map(s => (
-                      <span key={s} style={{ 
-                        background: mySkills.includes(s) ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.03)',
-                        color: mySkills.includes(s) ? '#4ade80' : 'var(--text-muted)',
-                        border: `1px solid ${mySkills.includes(s) ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.05)'}`,
-                        padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600,
-                        display: 'flex', alignItems: 'center', gap: '0.3rem'
-                      }}>
-                        {mySkills.includes(s) && <Check size={12} />} {s}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      Posted {task.createdAt} · <span style={{ color: 'var(--text-secondary)' }}>Deadline: May 2026</span>
-                    </div>
-                    
-                    {!isApplied ? (
+                      
                       <div style={{ display: 'flex', gap: '0.75rem' }}>
-                        {showMsg ? (
-                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                             <input className="form-input" placeholder="Message..." value={message} onChange={e => setMessage(e.target.value)} style={{ height: '44px', width: '200px' }} />
-                             <button onClick={() => handleApply(task)} className="btn btn-primary" style={{ height: '44px', borderRadius: '12px' }} disabled={applyingId === task.id}>
+                        {isApplied ? (
+                          <div style={{ background: 'rgba(34,197,94,0.1)', color: '#4ade80', padding: '0.6rem 1.5rem', borderRadius: '12px', fontWeight: 700, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Check size={18} /> Applied
+                          </div>
+                        ) : showMsg ? (
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                             <input className="form-input" placeholder="Add a message..." value={message} onChange={e => setMessage(e.target.value)} style={{ height: '44px', width: '220px' }} />
+                             <button onClick={() => handleApply(task)} className="btn btn-primary" disabled={applyingId === task.id}>
                                 {applyingId === task.id ? '...' : 'Confirm'}
                              </button>
-                             <button onClick={() => setShowMessageFor(null)} className="btn btn-secondary" style={{ height: '44px', width: '44px', padding: 0 }}>✕</button>
+                             <button onClick={() => setShowMessageFor(null)} className="btn btn-secondary" style={{ width: '44px', padding: 0 }}>✕</button>
                           </div>
                         ) : (
-                          <button onClick={() => setShowMessageFor(task.id)} className="btn btn-primary" style={{ height: '44px', padding: '0 2rem', borderRadius: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                             Apply Now <ArrowRight size={16} />
+                          <button onClick={() => setShowMessageFor(task.id)} className="btn btn-primary btn-lg" style={{ padding: '0 2rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                             Apply Now <ArrowRight size={18} />
                           </button>
                         )}
                       </div>
-                    ) : (
-                      <div style={{ background: 'rgba(34,197,94,0.1)', color: '#4ade80', padding: '0.6rem 1.5rem', borderRadius: '12px', fontWeight: 700, fontSize: '0.9rem' }}>
-                        ✓ Applied
-                      </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

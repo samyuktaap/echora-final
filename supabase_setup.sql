@@ -176,6 +176,40 @@ create policy "NGOs can view applications"
   on public.ngo_applications for select
   using (auth.uid() = ngo_id);
 
--- ── 8. DONE! ─────────────────────────────────────────────────────────────
+-- ── 8. NGO TASKS TABLE ──────────────────────────────────────────────────
+-- Tasks posted by NGOs for volunteers to apply to.
+
+create table if not exists public.ngo_tasks (
+  id              bigserial primary key,
+  ngo_id          uuid not null references public.profiles(id) on delete cascade,
+  ngo_name        text,
+  title           text not null,
+  description     text not null,
+  cause           text,
+  location        text not null,
+  state           text,
+  required_skills text[] default '{}',
+  min_experience  text default 'Beginner',
+  availability    text default 'Flexible',
+  urgency         text default 'medium',
+  spots           integer default 1,
+  deadline        text,
+  active          boolean default true,
+  created_at      timestamptz default now()
+);
+
+alter table public.ngo_tasks enable row level security;
+
+-- Everyone can view active tasks
+create policy "Anyone can view active tasks"
+  on public.ngo_tasks for select
+  using (active = true);
+
+-- NGOs can manage their own tasks
+create policy "NGOs can manage own tasks"
+  on public.ngo_tasks for all
+  using (auth.uid() = ngo_id);
+
+-- ── 9. DONE! ─────────────────────────────────────────────────────────────
 -- Your database is ready.
 -- ═══════════════════════════════════════════════════════════════════════
