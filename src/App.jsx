@@ -19,6 +19,7 @@ const ImpactDashboard = lazy(() => import('./pages/ImpactDashboard'));
 const Meetups = lazy(() => import('./pages/Meetups'));
 const NGOForm = lazy(() => import('./pages/NGOForm'));
 const NGORequests = lazy(() => import('./pages/NGORequests'));
+const NGODashboard = lazy(() => import('./pages/NGODashboard'));
 const VolunteerOnboarding = lazy(() => import('./pages/VolunteerOnboarding'));
 
 const ProtectedRoute = ({ children }) => {
@@ -50,6 +51,7 @@ function AppRoutes() {
         <Route path="leaderboard" element={<Leaderboard />} />
         <Route path="impact" element={<ImpactDashboard />} />
         <Route path="meetups" element={<Meetups />} />
+        <Route path="ngo-dashboard" element={<NGODashboard />} />
         <Route path="ngo-form" element={<NGOForm />} />
         <Route path="ngo-requests" element={<NGORequests />} />
       </Route>

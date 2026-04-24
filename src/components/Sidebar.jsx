@@ -4,22 +4,25 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Home, ClipboardList, Building, Map, Calendar, TrendingUp, Trophy, PlusCircle, User, LogOut, Menu, X, Zap, Globe } from 'lucide-react';
 
-const getNavItems = (t) => [
-  { to: '/dashboard', icon: Home, label: t('navDashboard') },
-  { to: '/tasks', icon: ClipboardList, label: t('navTasks') },
-  { to: '/ngo-requests', icon: Building, label: t('navNGORequests') },
-  { to: '/map', icon: Map, label: t('navMap') },
-  { to: '/meetups', icon: Calendar, label: t('navMeetups') },
-  { to: '/impact', icon: TrendingUp, label: t('navImpact') },
-  { to: '/leaderboard', icon: Trophy, label: t('navLeaderboard') },
-  { to: '/ngo-form', icon: PlusCircle, label: t('navNGOForm') },
-  { to: '/profile', icon: User, label: t('navProfile') },
-];
-
 const Sidebar = ({ onClose }) => {
   const { profile, signOut } = useAuth();
   const { t, language, setLanguage, LANGUAGES } = useLanguage();
   const navigate = useNavigate();
+
+  const navItems = [
+    { to: '/dashboard', icon: Home, label: t('navDashboard') },
+    { to: '/tasks', icon: ClipboardList, label: t('navTasks') },
+    ...(profile?.role === 'ngo' || profile?.role === 'admin' ? [
+      { to: '/ngo-dashboard', icon: Building, label: 'Volunteer Apps' }
+    ] : []),
+    { to: '/ngo-requests', icon: Building, label: t('navNGORequests') },
+    { to: '/map', icon: Map, label: t('navMap') },
+    { to: '/meetups', icon: Calendar, label: t('navMeetups') },
+    { to: '/impact', icon: TrendingUp, label: t('navImpact') },
+    { to: '/leaderboard', icon: Trophy, label: t('navLeaderboard') },
+    { to: '/ngo-form', icon: PlusCircle, label: t('navNGOForm') },
+    { to: '/profile', icon: User, label: t('navProfile') },
+  ];
 
   const handleSignOut = async () => {
     await signOut();
@@ -125,7 +128,7 @@ const Sidebar = ({ onClose }) => {
             ))}
           </div>
         </div>
-        {getNavItems(t).map(item => {
+        {navItems.map(item => {
           const IconComponent = item.icon;
           return (
             <NavLink key={item.to} to={item.to} onClick={onClose}
