@@ -4,7 +4,6 @@ import { useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import Layout from './components/Layout';
 import LoadingScreen from './components/LoadingScreen';
-import Toaster from 'react-hot-toast';
 import { Toaster as HotToaster } from 'react-hot-toast';
 
 // Lazy load pages
