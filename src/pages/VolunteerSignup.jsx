@@ -62,7 +62,7 @@ const VolunteerSignup = () => {
               bio: form.bio
             });
             toast.success('Welcome to ECHORA! 🎉');
-            navigate('/dashboard');
+            navigate('/volunteer-onboarding');
           }
         } else {
           toast.error(result.error);
