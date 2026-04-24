@@ -123,15 +123,59 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- ── 6. DISABLE EMAIL CONFIRMATION (dev-friendly) ───────────────────────
--- Users can sign in immediately after signup without checking email.
--- To re-enable in production: Dashboard → Auth → Email → enable "Confirm email"
+-- ── 6. VOLUNTEER DETAILS TABLE ───────────────────────────────────────────
+-- Extended onboarding data for volunteers (KYC, etc.)
 
--- Note: Email confirmation is controlled in Dashboard → Auth settings, not SQL.
--- Make sure "Enable email confirmations" is DISABLED in your Supabase Auth settings
--- for the best user experience during development.
+create table if not exists public.volunteer_details (
+  id              uuid primary key references public.profiles(id) on delete cascade,
+  phone           text,
+  address         text,
+  dob             text,
+  id_proof_type   text,
+  id_proof_number text,
+  created_at      timestamptz default now()
+);
 
--- ═══════════════════════════════════════════════════════════════════════
--- DONE! Your database is ready.
--- Next: add your .env file (see src/lib/supabase.js for instructions)
+alter table public.volunteer_details enable row level security;
+
+create policy "Users can manage own details"
+  on public.volunteer_details for all
+  using (auth.uid() = id);
+
+-- ── 7. NGO APPLICATIONS TABLE ───────────────────────────────────────────
+-- Applications submitted by volunteers for NGO tasks.
+
+create table if not exists public.ngo_applications (
+  id              bigserial primary key,
+  volunteer_id    uuid not null references public.profiles(id) on delete cascade,
+  ngo_id          uuid references public.profiles(id) on delete cascade,
+  task_id         text not null,
+  task_title      text,
+  volunteer_name  text,
+  volunteer_email text,
+  phone           text,
+  address         text,
+  dob             text,
+  id_proof_type   text,
+  id_proof_number text,
+  message         text,
+  match_score     integer default 0,
+  status          text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  created_at      timestamptz default now()
+);
+
+alter table public.ngo_applications enable row level security;
+
+-- Volunteers can view and insert their own applications
+create policy "Volunteers can manage own applications"
+  on public.ngo_applications for all
+  using (auth.uid() = volunteer_id);
+
+-- NGOs can view applications for their tasks (if ngo_id is set)
+create policy "NGOs can view applications"
+  on public.ngo_applications for select
+  using (auth.uid() = ngo_id);
+
+-- ── 8. DONE! ─────────────────────────────────────────────────────────────
+-- Your database is ready.
 -- ═══════════════════════════════════════════════════════════════════════
