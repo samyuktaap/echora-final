@@ -4,6 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { mockVolunteers, mockNGORequests, INDIA_STATES } from '../data/mockData';
 import { useAuth, STATE_COORDS } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -29,6 +30,7 @@ const FlyTo = ({ coords, zoom = 8 }) => {
 
 const MapView = () => {
   const { profile } = useAuth();
+  const { t } = useLanguage();
   const [showVolunteers, setShowVolunteers] = useState(true);
   const [showNGOs, setShowNGOs] = useState(true);
   const [showHeat, setShowHeat] = useState(true);
@@ -55,17 +57,17 @@ const MapView = () => {
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1 className="page-title">Map View</h1>
+        <h1 className="page-title">{t('pageMap')}</h1>
         <p className="page-subtitle">
-          Live volunteer & NGO locations across India
-          {profile?.location && <span style={{ color: 'var(--gold-mid)' }}> · Showing your location: {profile.location}</span>}
+          {t('greetingEvening')} · {t('appTagline')}
+          {profile?.location && <span style={{ color: 'var(--gold-mid)' }}> · {t('mapShowingYourLocation')}: {profile.location}</span>}
         </p>
       </div>
 
       {/* Location notice */}
       {!userCoords && (
         <div style={{ background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: '12px', padding: '1rem 1.25rem', marginBottom: '1.25rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-          💡 <strong style={{ color: 'var(--gold-mid)' }}>Tip:</strong> Set your location in <a href="/profile" style={{ color: 'var(--gold-mid)', textDecoration: 'underline' }}>Profile</a> to see your position on the map and find nearest tasks.
+          💡 <strong style={{ color: 'var(--gold-mid)' }}>{t('info')}:</strong> {t('mapTip')}
         </div>
       )}
 
@@ -74,22 +76,22 @@ const MapView = () => {
         <div style={{ background: 'rgba(201,168,76,0.07)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: '12px', padding: '1rem 1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '1.3rem' }}>📍</span>
           <div style={{ flex: 1 }}>
-            <strong style={{ color: 'var(--gold-mid)', fontSize: '0.85rem' }}>Nearest task to you:</strong>
+            <strong style={{ color: 'var(--gold-mid)', fontSize: '0.85rem' }}>{t('mapNearestTask')}</strong>
             <span style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem', fontSize: '0.85rem' }}>
               {nearestTask.ngoName} — {nearestTask.location}, {nearestTask.state}
             </span>
           </div>
-          <span className={`badge urgency-${nearestTask.urgency.toLowerCase()}`}>{nearestTask.urgency}</span>
-          <button onClick={() => setFlyTarget({ lat: nearestTask.lat, lng: nearestTask.lng, zoom: 10 })} className="btn btn-secondary btn-sm">Fly to →</button>
+          <span className={`badge urgency-${nearestTask.urgency.toLowerCase()}`}>{t(`urgency${nearestTask.urgency}`)}</span>
+          <button onClick={() => setFlyTarget({ lat: nearestTask.lat, lng: nearestTask.lng, zoom: 10 })} className="btn btn-secondary btn-sm">{t('mapFlyTo')} →</button>
         </div>
       )}
 
       {/* Controls */}
       <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
         {[
-          { label: '🙋 Volunteers', val: showVolunteers, set: setShowVolunteers, color: '#4a72d4' },
-          { label: '🏢 NGO Tasks', val: showNGOs, set: setShowNGOs, color: '#c94060' },
-          { label: '🌡️ Heatmap', val: showHeat, set: setShowHeat, color: 'var(--gold-mid)' },
+          { label: `🙋 ${t('mapVolunteers')}`, val: showVolunteers, set: setShowVolunteers, color: '#4a72d4' },
+          { label: `🏢 ${t('mapNGOTasks')}`, val: showNGOs, set: setShowNGOs, color: '#c94060' },
+          { label: `🌡️ ${t('mapHeatmap')}`, val: showHeat, set: setShowHeat, color: 'var(--gold-mid)' },
         ].map(c => (
           <button key={c.label} onClick={() => c.set(p => !p)} style={{
             padding: '0.4rem 0.9rem', borderRadius: '20px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600,
@@ -99,13 +101,13 @@ const MapView = () => {
           }}>{c.label}</button>
         ))}
         <select className="form-select" value={filterState} onChange={e => setFilterState(e.target.value)} style={{ maxWidth: 200, fontSize: '0.82rem' }}>
-          <option value="">All States</option>
+          <option value="">{t('mapAllStates')}</option>
           {INDIA_STATES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
         {userCoords && (
-          <button onClick={() => setFlyTarget({ ...userCoords, zoom: 9 })} className="btn btn-primary btn-sm">📍 My Location</button>
+          <button onClick={() => setFlyTarget({ ...userCoords, zoom: 9 })} className="btn btn-primary btn-sm">📍 {t('mapMyLocation')}</button>
         )}
-        <span className="badge badge-gray" style={{ marginLeft: 'auto' }}>{filtered_v.length} volunteers · {filtered_n.length} tasks</span>
+        <span className="badge badge-gray" style={{ marginLeft: 'auto' }}>{filtered_v.length} {t('volunteers')} · {filtered_n.length} {t('navTasks')}</span>
       </div>
 
       {/* Map */}
@@ -128,8 +130,8 @@ const MapView = () => {
                 pathOptions={{ color: '#c9a84c', fillColor: '#c9a84c', fillOpacity: 0.1, weight: 1 }}>
                 <Popup><div style={{ minWidth: 160, fontFamily: 'DM Sans, sans-serif', color: '#e8dfc8' }}>
                   <strong>{state}</strong><br />
-                  🙋 {mockVolunteers.filter(v => v.state === state).length} volunteers<br />
-                  🏢 {mockNGORequests.filter(r => r.state === state).length} tasks
+                  🙋 {mockVolunteers.filter(v => v.state === state).length} {t('volunteers')}<br />
+                  🏢 {mockNGORequests.filter(r => r.state === state).length} {t('navTasks')}
                 </div></Popup>
               </Circle>
             );
@@ -141,7 +143,7 @@ const MapView = () => {
               <Popup><div style={{ minWidth: 190, fontFamily: 'DM Sans, sans-serif', color: '#e8dfc8' }}>
                 <div style={{ fontWeight: 700, marginBottom: '0.3rem' }}>{v.name}</div>
                 <div style={{ fontSize: '0.78rem', opacity: 0.7, marginBottom: '0.25rem' }}>📍 {v.location}, {v.state}</div>
-                <div style={{ fontSize: '0.78rem', opacity: 0.7, marginBottom: '0.4rem' }}>🏅 {v.experience} · {v.points} pts</div>
+                <div style={{ fontSize: '0.78rem', opacity: 0.7, marginBottom: '0.4rem' }}>🏅 {t(v.experience.toLowerCase())} · {v.points} {t('pts')}</div>
                 <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
                   {v.skills.map(s => <span key={s} style={{ background: 'rgba(42,74,155,0.3)', color: '#7aa2e8', fontSize: '0.68rem', padding: '2px 6px', borderRadius: '20px' }}>{s}</span>)}
                 </div>
@@ -156,7 +158,7 @@ const MapView = () => {
                 <div style={{ fontWeight: 700, marginBottom: '0.3rem' }}>{r.ngoName}</div>
                 <div style={{ fontSize: '0.78rem', opacity: 0.7, marginBottom: '0.25rem' }}>📍 {r.location}, {r.state}</div>
                 <div style={{ fontSize: '0.78rem', opacity: 0.75, marginBottom: '0.5rem', lineHeight: 1.5 }}>{r.taskDescription}</div>
-                <span style={{ fontSize: '0.72rem', padding: '3px 8px', borderRadius: '20px', fontWeight: 600, background: r.urgency==='High'?'rgba(155,35,53,0.3)':r.urgency==='Medium'?'rgba(201,168,76,0.2)':'rgba(45,158,106,0.2)', color: r.urgency==='High'?'#e06080':r.urgency==='Medium'?'#c9a84c':'#5dba8c' }}>{r.urgency} Urgency</span>
+                <span style={{ fontSize: '0.72rem', padding: '3px 8px', borderRadius: '20px', fontWeight: 600, background: r.urgency==='High'?'rgba(155,35,53,0.3)':r.urgency==='Medium'?'rgba(201,168,76,0.2)':'rgba(45,158,106,0.2)', color: r.urgency==='High'?'#e06080':r.urgency==='Medium'?'#c9a84c':'#5dba8c' }}>{t(`urgency${r.urgency}`)} {t('info')}</span>
               </div></Popup>
             </Marker>
           ))}
@@ -165,7 +167,7 @@ const MapView = () => {
           {userCoords && (
             <Marker position={[userCoords.lat, userCoords.lng]} icon={userIcon}>
               <Popup><div style={{ fontFamily: 'DM Sans, sans-serif', color: '#e8dfc8' }}>
-                <strong>📍 Your Location</strong><br />
+                <strong>📍 {t('yourLocation')}</strong><br />
                 <span style={{ fontSize: '0.78rem', opacity: 0.7 }}>{profile?.location || ''}{profile?.state ? `, ${profile.state}` : ''}</span>
               </div></Popup>
             </Marker>
@@ -177,8 +179,13 @@ const MapView = () => {
       <div className="card" style={{ marginTop: '1rem' }}>
         <div className="card-body" style={{ padding: '1rem 1.5rem' }}>
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Legend</span>
-            {[['#4a72d4','🙋','Volunteer'],['#c94060','🏢','NGO Task'],['var(--gold-mid)','⭐','Your Location'],['var(--gold-mid)','🌡️','Activity Heatmap']].map(([c,i,l]) => (
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t('mapLegend')}</span>
+            {[
+              ['#4a72d4','🙋',t('mapVolunteers')],
+              ['#c94060','🏢',t('mapNGOTasks')],
+              ['var(--gold-mid)','⭐',t('yourLocation')],
+              ['var(--gold-mid)','🌡️',t('mapHeatmap')]
+            ].map(([c,i,l]) => (
               <div key={l} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: c }} />
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{i} {l}</span>
