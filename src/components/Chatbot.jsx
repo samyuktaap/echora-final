@@ -163,10 +163,10 @@ const Chatbot = () => {
           parts: [{ text: m.text }]
         }));
 
-        const systemInstruction = `You are VolBot, the smart assistant for ECHORA (India's volunteering platform). 
+        const systemInstruction = `You are VolBot, the highly intelligent and versatile AI assistant for ECHORA. 
+        While you are an expert on India's volunteering platform (ECHORA), you can and should help the user with ANY question they have (general knowledge, advice, coding, history, etc.). 
         User: ${profile?.name || 'Volunteer'}. 
-        Help the user navigate ECHORA, find tasks, understand points, or just chat. 
-        Be helpful, concise, and friendly. Use emojis!`;
+        Be professional, engaging, and use emojis!`;
 
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
           method: 'POST',

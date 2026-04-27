@@ -14,8 +14,8 @@ app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
-// 🚀 DYNAMIC CONFIGURATION ENDPOINT
-// This allows Google Cloud environment variables to work at runtime!
+// 🚀 DYNAMIC CONFIGURATION ENDPOINT (TOP PRIORITY)
+// This MUST come before express.static to override the placeholder file!
 app.get('/config.js', (req, res) => {
   const config = {
     VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || '',
@@ -30,6 +30,7 @@ app.get('/config.js', (req, res) => {
   };
   
   res.type('application/javascript');
+  res.set('Cache-Control', 'no-store'); // Ensure it's never cached!
   res.send(`window.CONFIG = ${JSON.stringify(config)};`);
 });
 
