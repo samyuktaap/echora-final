@@ -204,11 +204,36 @@ const Login = () => {
           marginBottom: '6rem' 
         }}>
           {/* Header Branding */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <img src="/echora-logo.svg" style={{ width: 44, height: 44 }} alt="Logo" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <div style={{ position: 'relative' }}>
+              <img src="/echora-logo.svg" style={{ width: 48, height: 48, filter: 'drop-shadow(0 0 15px rgba(167, 192, 128, 0.4))' }} alt="Logo" />
+              <div style={{ position: 'absolute', inset: -4, border: '1px solid rgba(167, 192, 128, 0.2)', borderRadius: '50%', animation: 'pulse 3s infinite' }} />
+            </div>
             <div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, fontFamily: 'var(--font-display)', lineHeight: 1 }}>ECHORA</div>
-              <div style={{ fontSize: '0.65rem', letterSpacing: '0.15em', opacity: 0.5 }}>EMPATHY IN EVERY ECHO</div>
+              <div className="dynamic-branding" style={{ 
+                fontSize: '2.2rem', 
+                fontWeight: 900, 
+                fontFamily: 'var(--font-display)', 
+                lineHeight: 1,
+                background: 'linear-gradient(90deg, #a7c080 0%, #d3e39d 50%, #a7c080 100%)',
+                backgroundSize: '200% auto',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                animation: 'shimmer 4s linear infinite',
+                letterSpacing: '-0.02em'
+              }}>
+                ECHORA
+              </div>
+              <div style={{ 
+                fontSize: '0.65rem', 
+                letterSpacing: '0.3em', 
+                fontWeight: 700, 
+                color: 'rgba(255,255,255,0.4)',
+                marginTop: '0.4rem',
+                textTransform: 'uppercase'
+              }}>
+                Redefining Impact • One Echo at a Time
+              </div>
             </div>
           </div>
 
@@ -341,6 +366,15 @@ const Login = () => {
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(30px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes shimmer {
+          0% { background-position: 0% 50%; }
+          100% { background-position: 200% 50%; }
+        }
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 0.5; }
+          50% { transform: scale(1.15); opacity: 0.2; }
+          100% { transform: scale(1); opacity: 0.5; }
         }
         @media (max-width: 1024px) {
           div[style*="gridTemplateColumns: 1.2fr 1fr"] { grid-template-columns: 1fr !important; }
