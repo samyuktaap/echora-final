@@ -14,8 +14,19 @@ app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
-// 🚀 DYNAMIC CONFIGURATION ENDPOINT (TOP PRIORITY)
-// This MUST come before express.static to override the placeholder file!
+// 🕵️‍♂️ SECRET DEBUG ENDPOINT
+// Use this to see if the server actually has your keys!
+app.get('/debug-keys', (req, res) => {
+  const mask = (key) => key ? `${key.substring(0, 4)}...${key.substring(key.length - 4)}` : 'MISSING';
+  res.json({
+    supabase_url: mask(process.env.VITE_SUPABASE_URL),
+    supabase_key: mask(process.env.VITE_SUPABASE_ANON_KEY),
+    gemini_key: mask(process.env.VITE_GEMINI_API_KEY),
+    env_keys_found: Object.keys(process.env).filter(k => k.startsWith('VITE_'))
+  });
+});
+
+// 🚀 DYNAMIC CONFIGURATION ENDPOINT
 app.get('/config.js', (req, res) => {
   const config = {
     VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || '',
@@ -30,15 +41,13 @@ app.get('/config.js', (req, res) => {
   };
   
   res.type('application/javascript');
-  res.set('Cache-Control', 'no-store'); // Ensure it's never cached!
+  res.set('Cache-Control', 'no-store');
   res.send(`window.CONFIG = ${JSON.stringify(config)};`);
 });
 
-// Serve static files from the 'dist' directory
 const distPath = path.join(__dirname, 'dist');
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
-  
   app.get('*', (req, res) => {
     const indexPath = path.join(distPath, 'index.html');
     if (fs.existsSync(indexPath)) {
@@ -55,10 +64,4 @@ if (fs.existsSync(distPath)) {
 
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);
-});
-
-process.on('SIGTERM', () => {
-  server.close(() => {
-    console.log('Http server closed.');
-  });
 });
