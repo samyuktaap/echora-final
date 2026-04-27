@@ -9,15 +9,20 @@ RUN npm run build
 # Production stage
 FROM node:18-alpine
 WORKDIR /app
+
+# Copy package files and install production dependencies
 COPY package*.json ./
-# Install only production dependencies
 RUN npm install --only=production
-# Copy build files from build stage
+
+# Copy built assets from build stage
 COPY --from=build /app/dist ./dist
-# Copy the server file
+
+# Copy server.js
 COPY server.js ./
 
-EXPOSE 8080
+# Set environment variables
 ENV PORT=8080
+EXPOSE 8080
 
+# Start the server
 CMD ["node", "server.js"]
