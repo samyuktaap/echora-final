@@ -134,7 +134,7 @@ const VoiceAssistant = () => {
 Respond ONLY in ${langMap[selectedLanguage]}. Be concise (2-3 sentences max).
 User asked: "${text}"`;
 
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
@@ -381,7 +381,38 @@ User asked: "${text}"`;
               </div>
             </div>
 
-
+            {/* API Key Configuration */}
+            <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <Settings size={14} style={{ color: 'var(--gold-mid)' }} />
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Gemini API Configuration
+                </label>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="password"
+                  value={geminiKey}
+                  onChange={(e) => {
+                    const newKey = e.target.value;
+                    setGeminiKey(newKey);
+                    localStorage.setItem('gemini_api_key', newKey);
+                  }}
+                  placeholder="Paste your API key here..."
+                  className="form-input"
+                  style={{
+                    flex: 1,
+                    height: '40px',
+                    fontSize: '0.8rem',
+                    background: 'rgba(0,0,0,0.2)',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                  }}
+                />
+              </div>
+              <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.6rem', lineHeight: 1.4 }}>
+                Required for AI voice features. Your key is stored <strong>locally</strong> and never sent to our servers.
+              </p>
+            </div>
 
             {/* Current Language Display */}
             <div style={{ 
