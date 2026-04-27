@@ -205,10 +205,10 @@ const Login = () => {
         }}>
           {/* Header Branding */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <img src="/echora-logo.svg" style={{ width: 32, height: 32 }} alt="Logo" />
+            <img src="/echora-logo.svg" style={{ width: 44, height: 44 }} alt="Logo" />
             <div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 800, fontFamily: 'var(--font-display)' }}>ECHORA</div>
-              <div style={{ fontSize: '0.6rem', letterSpacing: '0.1em', opacity: 0.5 }}>EMPATHY IN EVERY ECHO</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, fontFamily: 'var(--font-display)', lineHeight: 1 }}>ECHORA</div>
+              <div style={{ fontSize: '0.65rem', letterSpacing: '0.15em', opacity: 0.5 }}>EMPATHY IN EVERY ECHO</div>
             </div>
           </div>
 
@@ -222,7 +222,7 @@ const Login = () => {
         </div>
 
         <div style={{ maxWidth: '400px', width: '100%', margin: '0 auto' }}>
-          <h1 style={{ fontSize: '3.5rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: 'var(--font-display)' }}>
+          <h1 style={{ fontSize: '2.5rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: 'var(--font-display)' }}>
             {mode === 'signin' ? 'Login' : 'Join'}
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', marginBottom: '2.5rem' }}>
