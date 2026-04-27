@@ -132,11 +132,24 @@ const VoiceAssistant = () => {
       try {
         const langMap = { en: 'English', hi: 'Hindi', ta: 'Tamil', kn: 'Kannada' };
         const profileInfo = localStorage.getItem('volunteer_profile') || 'New User';
-        const prompt = `You are ECHORA AI, a friendly and versatile assistant. 
+        
+        // Build history-aware contents
+        const historyLimit = 6;
+        const recentHistory = chatMessages.slice(-historyLimit).map(msg => ({
+          role: msg.sender === 'user' ? 'user' : 'model',
+          parts: [{ text: msg.text }]
+        }));
+
+        const systemInstruction = `You are ECHORA AI, a friendly and versatile assistant. 
 User Profile: ${profileInfo}
-While your expertise is ECHORA (India's volunteering platform), you are capable of answering ALL kinds of questions (general knowledge, creative writing, advice, etc.).
-Respond in ${langMap[selectedLanguage]}. Be helpful, engaging, and clear.
-User: "${text}"`;
+While your expertise is ECHORA (India's volunteering platform), you can help with ANY question.
+Respond in ${langMap[selectedLanguage]}. 
+IMPORTANT: DO NOT REPEAT YOURSELF. Be creative, engaging, and varied in your responses.`;
+
+        const contents = [
+          ...recentHistory,
+          { role: 'user', parts: [{ text: `${systemInstruction}\n\nUser Message: "${text}"` }] }
+        ];
 
         const models = ['gemini-2.0-flash', 'gemini-flash-latest', 'gemini-pro', 'gemini-1.5-flash'];
         let res;
@@ -147,7 +160,15 @@ User: "${text}"`;
             res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+              body: JSON.stringify({ 
+                contents,
+                generationConfig: {
+                  temperature: 0.9,
+                  topK: 40,
+                  topP: 0.95,
+                  maxOutputTokens: 1024,
+                }
+              })
             });
             if (res.ok) {
               const data = await res.json();
