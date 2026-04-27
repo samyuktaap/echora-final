@@ -9,7 +9,7 @@ import { CheckCircle, Star, Trophy, Handshake, MapPin, Calendar, Users, Trending
 import BannerSlider from '../components/BannerSlider';
 
 const StatCard = ({ icon: IconComponent, label, value, color, delta }) => (
-  <div className="card fade-in" style={{ 
+  <div className="card hover-float" style={{ 
     padding: '2.5rem', 
     background: '#ffffff', 
     borderRadius: '24px',
@@ -18,7 +18,9 @@ const StatCard = ({ icon: IconComponent, label, value, color, delta }) => (
     display: 'flex',
     alignItems: 'center',
     gap: '1.5rem',
-    transition: 'all 0.3s ease'
+    transition: 'all 0.3s ease',
+    opacity: 0,
+    animation: 'popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
   }}>
     <div className="stat-icon" style={{ 
       width: 64, height: 64, 
@@ -60,10 +62,10 @@ const Dashboard = () => {
 
       {/* Stats */}
       <div className="grid-4 mb-4">
-        <StatCard icon={CheckCircle} label={t('tasksCompleted')} value={profile?.tasksCompleted || 0} color="var(--success)" delta="+2" />
-        <StatCard icon={Star} label={t('pointsEarned')} value={points} color="var(--primary-mid)" delta="+50" />
-        <StatCard icon={Trophy} label={t('badgesEarned')} value={profile?.badges?.length || 1} color="var(--primary-light)" />
-        <StatCard icon={Handshake} label={t('ngosHelped')} value={Math.max(1, Math.floor((profile?.tasksCompleted || 0) / 3))} color="var(--danger-light)" />
+        <div className="pop-in stagger-1"><StatCard icon={CheckCircle} label={t('tasksCompleted')} value={profile?.tasksCompleted || 0} color="var(--success)" delta="+2" /></div>
+        <div className="pop-in stagger-2"><StatCard icon={Star} label={t('pointsEarned')} value={points} color="var(--primary-mid)" delta="+50" /></div>
+        <div className="pop-in stagger-3"><StatCard icon={Trophy} label={t('badgesEarned')} value={profile?.badges?.length || 1} color="var(--primary-light)" /></div>
+        <div className="pop-in stagger-4"><StatCard icon={Handshake} label={t('ngosHelped')} value={Math.max(1, Math.floor((profile?.tasksCompleted || 0) / 3))} color="var(--danger-light)" /></div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: profile?.role === 'ngo' ? '1fr' : '2fr 1fr', gap: '1.5rem' }}>
