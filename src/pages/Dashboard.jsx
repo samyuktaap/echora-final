@@ -49,6 +49,10 @@ const Dashboard = () => {
 
   const translatedMeetups = translateArray(mockMeetups.slice(0, 2), language, 'meetups');
 
+  const points = profile?.points || 0;
+  const nextTier = points < 200 ? { name: 'Silver', needed: 200 } : points < 500 ? { name: 'Gold', needed: 500 } : { name: 'Platinum', needed: 1000 };
+  const progress = Math.min((points / nextTier.needed) * 100, 100);
+
   return (
     <div className="page-container" style={{ background: '#f8f9fa', minHeight: '100vh' }}>
       {/* Banner Slider */}
