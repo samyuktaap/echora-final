@@ -131,31 +131,40 @@ const VoiceAssistant = () => {
       setIsAiThinking(true);
       try {
         const langMap = { en: 'English', hi: 'Hindi', ta: 'Tamil', kn: 'Kannada' };
-        const prompt = `You are the ECHORA AI Assistant, an empathetic and helpful guide for a volunteering platform in India. 
-Respond ONLY in ${langMap[selectedLanguage]}. Be concise (2-3 sentences max).
-User asked: "${text}"`;
+        const profileInfo = localStorage.getItem('volunteer_profile') || 'New User';
+        const prompt = `You are ECHORA AI, a friendly and versatile assistant. 
+User Profile: ${profileInfo}
+While your expertise is ECHORA (India's volunteering platform), you are capable of answering ALL kinds of questions (general knowledge, creative writing, advice, etc.).
+Respond in ${langMap[selectedLanguage]}. Be helpful, engaging, and clear.
+User: "${text}"`;
 
+        const models = ['gemini-2.0-flash', 'gemini-flash-latest', 'gemini-pro', 'gemini-1.5-flash'];
         let res;
-        try {
-          res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-          });
-          if (!res.ok) throw new Error('Primary model failed');
-        } catch (e) {
-          console.warn('Primary model failed, trying fallback...');
-          res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-          });
+        let lastError = '';
+
+        for (const model of models) {
+          try {
+            res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+                finalResponse = data.candidates[0].content.parts[0].text.replace(/\*/g, '');
+                break;
+              }
+            } else {
+              const errData = await res.json();
+              lastError = errData.error?.message || res.statusText;
+            }
+          } catch (e) {
+            lastError = e.message;
+          }
         }
         
-        const data = await res.json();
-        if (data.error) throw new Error(data.error.message);
-        
-        finalResponse = data.candidates[0].content.parts[0].text.replace(/\*/g, ''); // Strip markdown
+        if (!finalResponse) throw new Error(lastError || 'All models failed');
       } catch (err) {
         console.error('Gemini error:', err);
         finalResponse = `API Error: ${err.message || 'Unknown connection problem'}. Please verify your Gemini API key in Settings.`;
@@ -187,25 +196,37 @@ User asked: "${text}"`;
     }
     setTestStatus('testing');
     try {
-      let res;
-      try {
-        res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: 'Hello' }] }] })
-        });
-        if (!res.ok) throw new Error('Primary failed');
-      } catch (e) {
-        res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: 'Hello' }] }] })
-        });
+      const models = ['gemini-2.0-flash', 'gemini-flash-latest', 'gemini-pro', 'gemini-1.5-flash'];
+      let success = false;
+      let lastError = '';
+
+      for (const model of models) {
+        try {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: 'Hello' }] }] })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+              success = true;
+              break;
+            }
+          } else {
+            const errData = await res.json();
+            lastError = errData.error?.message || res.statusText;
+          }
+        } catch (e) {
+          lastError = e.message;
+        }
       }
-      
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message);
-      setTestStatus('success');
+
+      if (success) {
+        setTestStatus('success');
+      } else {
+        throw new Error(lastError || 'All models failed');
+      }
     } catch (err) {
       console.error('Test failed:', err);
       setTestStatus('error');
