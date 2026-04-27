@@ -127,9 +127,12 @@ const VoiceAssistant = () => {
     const userMessage = { text: text, sender: 'user', language: selectedLanguage };
     setChatMessages(prev => [...prev, userMessage]);
     
+    // 🛡️ BULLETPROOF KEY RETRIEVAL
+    const currentKey = window.CONFIG?.VITE_GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('gemini_api_key');
+    
     let finalResponse = '';
 
-    if (geminiKey) {
+    if (currentKey) {
       setIsAiThinking(true);
       try {
         const langMap = { en: 'English', hi: 'Hindi', ta: 'Tamil', kn: 'Kannada' };
@@ -158,7 +161,7 @@ DO NOT REPEAT YOURSELF. Be creative, engaging, and varied in your responses.`;
         const modelsToTry = workingModel ? [workingModel] : ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-pro'];
         
         const fetchWithModel = async (model) => {
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
