@@ -61,7 +61,6 @@ const Profile = () => {
   const handleSave = async () => {
     if (!form.name) { toast.error(t('fieldRequired')); return; }
     setSaving(true);
-    await new Promise(r => setTimeout(r, 500));
     updateProfile(form);
     setSaving(false);
     setEditing(false);
