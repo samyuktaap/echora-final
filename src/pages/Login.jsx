@@ -192,25 +192,33 @@ const Login = () => {
         padding: '4rem 5rem', 
         display: 'flex', 
         flexDirection: 'column', 
-        justifyContent: 'center',
         background: '#050505',
         position: 'relative',
+        overflowY: 'auto'
       }}>
-        {/* Header Branding */}
-        <div style={{ position: 'absolute', top: '3rem', left: '5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <img src="/echora-logo.svg" style={{ width: 32, height: 32 }} alt="Logo" />
-          <div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 800, fontFamily: 'var(--font-display)' }}>ECHORA</div>
-            <div style={{ fontSize: '0.6rem', letterSpacing: '0.1em', opacity: 0.5 }}>EMPATHY IN EVERY ECHO</div>
+        {/* Top bar with Branding & Controls */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: '6rem' 
+        }}>
+          {/* Header Branding */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <img src="/echora-logo.svg" style={{ width: 32, height: 32 }} alt="Logo" />
+            <div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, fontFamily: 'var(--font-display)' }}>ECHORA</div>
+              <div style={{ fontSize: '0.6rem', letterSpacing: '0.1em', opacity: 0.5 }}>EMPATHY IN EVERY ECHO</div>
+            </div>
           </div>
-        </div>
 
-        {/* Language & Theme Controls */}
-        <div style={{ position: 'absolute', top: '3rem', right: '3rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <LanguageSwitcher />
-          <button onClick={toggleTheme} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer' }}>
-            {isDark ? '☀️' : '🌙'}
-          </button>
+          {/* Language & Theme Controls */}
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <LanguageSwitcher />
+            <button onClick={toggleTheme} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer' }}>
+              {isDark ? '☀️' : '🌙'}
+            </button>
+          </div>
         </div>
 
         <div style={{ maxWidth: '400px', width: '100%', margin: '0 auto' }}>
