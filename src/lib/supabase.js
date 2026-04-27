@@ -11,14 +11,13 @@ import { createClient } from '@supabase/supabase-js';
 // 4. Restart your dev server
 // ─────────────────────────────────────────────────────────────────────────────
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = window.CONFIG?.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = window.CONFIG?.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co') {
   console.warn(
     '⚠️  ECHORA: Supabase URL not set.\n' +
-    'Create a .env file with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.\n' +
-    'See src/lib/supabase.js for setup instructions.'
+    'Check /config.js or .env file.'
   );
 }
 
