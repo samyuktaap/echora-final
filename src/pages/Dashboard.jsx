@@ -9,7 +9,7 @@ import { CheckCircle, Star, Trophy, Handshake, MapPin, Calendar, Users, Trending
 import BannerSlider from '../components/BannerSlider';
 
 const StatCard = ({ icon: IconComponent, label, value, color, delta }) => (
-  <div className="card hover-float" style={{ 
+  <div className="card fade-in" style={{ 
     padding: '2.5rem', 
     background: '#ffffff', 
     borderRadius: '24px',
@@ -18,7 +18,7 @@ const StatCard = ({ icon: IconComponent, label, value, color, delta }) => (
     display: 'flex',
     alignItems: 'center',
     gap: '1.5rem',
-    transition: 'all 0.3s ease',
+    transition: 'all 0.3s ease'
   }}>
     <div className="stat-icon" style={{ 
       width: 64, height: 64, 
@@ -60,45 +60,43 @@ const Dashboard = () => {
 
       {/* Stats */}
       <div className="grid-4 mb-4">
-        <div className="pop-in stagger-1"><StatCard icon={CheckCircle} label={t('tasksCompleted')} value={profile?.tasksCompleted || 0} color="var(--success)" delta="+2" /></div>
-        <div className="pop-in stagger-2"><StatCard icon={Star} label={t('pointsEarned')} value={points} color="var(--primary-mid)" delta="+50" /></div>
-        <div className="pop-in stagger-3"><StatCard icon={Trophy} label={t('badgesEarned')} value={profile?.badges?.length || 1} color="var(--primary-light)" /></div>
-        <div className="pop-in stagger-4"><StatCard icon={Handshake} label={t('ngosHelped')} value={Math.max(1, Math.floor((profile?.tasksCompleted || 0) / 3))} color="var(--danger-light)" /></div>
+        <StatCard icon={CheckCircle} label={t('tasksCompleted')} value={profile?.tasksCompleted || 0} color="var(--success)" delta="+2" />
+        <StatCard icon={Star} label={t('pointsEarned')} value={points} color="var(--primary-mid)" delta="+50" />
+        <StatCard icon={Trophy} label={t('badgesEarned')} value={profile?.badges?.length || 1} color="var(--primary-light)" />
+        <StatCard icon={Handshake} label={t('ngosHelped')} value={Math.max(1, Math.floor((profile?.tasksCompleted || 0) / 3))} color="var(--danger-light)" />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: profile?.role === 'ngo' ? '1fr' : '2fr 1fr', gap: '1.5rem' }}>
-        {/* Matched Tasks - Only for Volunteers */}
-        {profile?.role !== 'ngo' && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <h2 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)' }}>{t('tasksMatchedForYou')}</h2>
-              <button onClick={() => navigate('/tasks')} className="btn btn-secondary btn-sm">{t('viewAll')}</button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              {(matchedTasks.length > 0 ? matchedTasks : translateArray(mockNGORequests.slice(0, 3), language, 'tasks')).map(task => (
-                <div key={task.id} className="card card-hover fade-in">
-                  <div className="card-body" style={{ padding: '1.25rem 1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
-                          <span style={{ fontWeight: 700, fontSize: '0.95rem', fontFamily: 'var(--font-display)' }}>{task.ngoName}</span>
-                        </div>
-                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.6rem', lineHeight: 1.6 }}>{task.taskDescription}</p>
-                        <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                          <span className="badge badge-gray" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                            <MapPin size={12} strokeWidth={2} /> {task.location}, {task.state}
-                          </span>
-                          {task.requiredSkills?.map(s => <span key={s} className="badge badge-primary">{getTranslatedSkill(language, s)}</span>)}
-                        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+        {/* Matched Tasks */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <h2 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)' }}>{t('tasksMatchedForYou')}</h2>
+            <button onClick={() => navigate('/tasks')} className="btn btn-secondary btn-sm">{t('viewAll')}</button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            {(matchedTasks.length > 0 ? matchedTasks : translateArray(mockNGORequests.slice(0, 3), language, 'tasks')).map(task => (
+              <div key={task.id} className="card card-hover fade-in">
+                <div className="card-body" style={{ padding: '1.25rem 1.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.95rem', fontFamily: 'var(--font-display)' }}>{task.ngoName}</span>
                       </div>
-                      <button onClick={() => navigate('/tasks')} className="btn btn-primary btn-sm" style={{ flexShrink: 0 }}>{t('apply')}</button>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.6rem', lineHeight: 1.6 }}>{task.taskDescription}</p>
+                      <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                        <span className="badge badge-gray" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <MapPin size={12} strokeWidth={2} /> {task.location}, {task.state}
+                        </span>
+                        {task.requiredSkills?.map(s => <span key={s} className="badge badge-primary">{getTranslatedSkill(language, s)}</span>)}
+                      </div>
                     </div>
+                    <button onClick={() => navigate('/tasks')} className="btn btn-primary btn-sm" style={{ flexShrink: 0 }}>{t('apply')}</button>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
 
         {/* Right panel */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

@@ -77,10 +77,12 @@ const VolunteerSignup = () => {
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
             <img 
-              src="/echora-logo.svg" 
+              src="/echora-logo.jpeg" 
               alt="ECHORA Logo"
               style={{
                 width: 48, height: 48,
+                borderRadius: '50%',
+                objectFit: 'cover',
                 boxShadow: 'var(--shadow-gold)',
               }}
             />

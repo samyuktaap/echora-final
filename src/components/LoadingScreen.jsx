@@ -11,10 +11,12 @@ const LoadingScreen = () => (
     gap: '1.5rem',
   }}>
     <img 
-        src="/echora-logo.svg" 
+        src="/echora-logo.jpeg" 
         alt="ECHORA"
         style={{
           width: 60, height: 60,
+          borderRadius: '50%',
+          objectFit: 'cover',
           boxShadow: 'var(--shadow-gold)',
           animation: 'pulse 2s ease-in-out infinite',
         }}

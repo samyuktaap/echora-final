@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { User, Mail, Phone, MapPin, Calendar, ShieldCheck, CheckCircle2, XCircle, Clock, Zap, Search, Star } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, ShieldCheck, CheckCircle2, XCircle, Clock, Zap, Search, Brain, Star } from 'lucide-react';
+import { scoreApplications } from '../utils/logisticRegression';
 
 const MatchIndicator = ({ percent }) => {
   const color = percent > 80 ? '#22c55e' : percent > 40 ? '#f59e0b' : '#ef4444';
@@ -41,6 +42,9 @@ const NGODashboard = () => {
   const [autoSelectionThreshold, setAutoSelectionThreshold] = useState(70);
   const [isRunningAutoSelection, setIsRunningAutoSelection] = useState(false);
 
+  // Logistic Regression state
+  const [lrPredictions, setLrPredictions] = useState(new Map());
+  const [lrModelMeta, setLrModelMeta] = useState(null);
 
   // Feedback State
   const [feedbackState, setFeedbackState] = useState({});
@@ -85,6 +89,14 @@ const NGODashboard = () => {
       const appList = apps || [];
       setApplications(appList);
 
+      // ── Run logistic regression on updated data ─────────────────────────
+      try {
+        const { modelMeta, predictions } = scoreApplications(appList);
+        setLrPredictions(predictions);
+        setLrModelMeta(modelMeta);
+      } catch (lrErr) {
+        console.warn('LR scoring failed:', lrErr);
+      }
     } catch (err) {
       toast.error('Failed to load dashboard');
     } finally {
@@ -641,6 +653,33 @@ const NGODashboard = () => {
         </div>
       ) : (
         <>
+        {/* ── Logistic Regression Model Banner ─────────────────────────── */}
+        {lrModelMeta && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.75rem',
+            background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)',
+            borderRadius: 14, padding: '0.75rem 1.25rem', marginBottom: '1rem',
+            flexWrap: 'wrap',
+          }}>
+            <Brain size={18} style={{ color: 'var(--gold-mid)', flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--gold-mid)' }}>
+                AI Logistic Regression Model
+              </span>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '0.5rem' }}>
+                {lrModelMeta.trained
+                  ? `Trained on ${applications.filter(a => a.status !== 'pending').length} historical decisions · ${lrModelMeta.accuracy}% training accuracy`
+                  : 'Using default weights — approve/reject more applications to improve accuracy'}
+              </span>
+            </div>
+            <span style={{
+              fontSize: '0.7rem', fontWeight: 700, padding: '3px 10px',
+              borderRadius: 20, background: 'rgba(201,168,76,0.12)',
+              color: 'var(--gold-mid)', border: '1px solid rgba(201,168,76,0.25)',
+              textTransform: 'uppercase', letterSpacing: '0.05em'
+            }}>Live Predictions</span>
+          </div>
+        )}
 
         <div style={{ display: 'grid', gap: '1.25rem' }}>
           {filtered.map(app => (
@@ -680,6 +719,27 @@ const NGODashboard = () => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', alignItems: 'flex-end' }}>
                       <MatchIndicator percent={app.match_score} />
+                      {/* ── AI Recommendation Badge ── */}
+                      {(() => {
+                        const pred = lrPredictions.get(app.id);
+                        if (!pred) return null;
+                        return (
+                          <div style={{
+                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                            background: `${pred.color}18`,
+                            border: `1px solid ${pred.color}40`,
+                            borderRadius: 20, padding: '3px 10px',
+                          }}>
+                            <Brain size={12} style={{ color: pred.color }} />
+                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: pred.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              AI: {pred.recommendation}
+                            </span>
+                            <span style={{ fontSize: '0.7rem', color: pred.color, opacity: 0.8 }}>
+                              {pred.pct}%
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 

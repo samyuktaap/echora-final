@@ -103,12 +103,13 @@ const Login = () => {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      height: '100vh',
       display: 'grid',
       gridTemplateColumns: '1.2fr 1fr',
       background: '#0a0a0a',
       color: '#ffffff',
       fontFamily: 'var(--font-sans)',
+      overflow: 'hidden'
     }}>
       {/* LEFT: Hero Slider */}
       <div style={{
@@ -189,9 +190,10 @@ const Login = () => {
 
       {/* RIGHT: Auth Form */}
       <div style={{ 
-        padding: '4rem 5rem', 
+        padding: '2rem 4rem', 
         display: 'flex', 
         flexDirection: 'column', 
+        justifyContent: 'center',
         background: '#050505',
         position: 'relative',
         overflowY: 'auto'
@@ -201,12 +203,12 @@ const Login = () => {
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center',
-          marginBottom: '6rem' 
+          marginBottom: '2.5rem' 
         }}>
           {/* Header Branding */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
             <div style={{ position: 'relative' }}>
-              <img src="/echora-logo.svg" style={{ width: 48, height: 48, filter: 'drop-shadow(0 0 15px rgba(216, 180, 254, 0.4))' }} alt="Logo" />
+              <img src="/echora-logo.jpeg" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', filter: 'drop-shadow(0 0 15px rgba(216, 180, 254, 0.4))' }} alt="Logo" />
               <div style={{ position: 'absolute', inset: -4, border: '1px solid rgba(216, 180, 254, 0.2)', borderRadius: '50%', animation: 'pulse 3s infinite' }} />
             </div>
             <div>
@@ -247,10 +249,10 @@ const Login = () => {
         </div>
 
         <div style={{ maxWidth: '400px', width: '100%', margin: '0 auto' }}>
-          <h1 style={{ fontSize: '2.5rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: 'var(--font-display)' }}>
+          <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.25rem', fontFamily: 'var(--font-display)' }}>
             {mode === 'signin' ? 'Login' : 'Join'}
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', marginBottom: '2.5rem' }}>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
             {mode === 'signin' ? (
               <>Sign up here if you do not have an account. <span onClick={() => setMode('signup')} style={{ color: accentColor, fontWeight: 700, cursor: 'pointer' }}>Sign Up</span></>
             ) : (
@@ -258,7 +260,7 @@ const Login = () => {
             )}
           </p>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {mode === 'signup' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <label style={{ fontSize: '0.7rem', letterSpacing: '0.15em', fontWeight: 600, opacity: 0.4 }}>FULL NAME</label>
@@ -304,12 +306,12 @@ const Login = () => {
               </div>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '-0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifySpace: 'between', marginTop: '-0.5rem' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.85rem', opacity: 0.4, cursor: 'pointer', flex: 1 }}>
                 <input type="checkbox" style={{ accentColor }} />
-                {t('rememberMe')}
+                Remember me
               </label>
-              <a href="#" style={{ fontSize: '0.85rem', fontWeight: 600, color: accentColor, textDecoration: 'none' }}>{t('forgotPassword')}</a>
+              <Link to="#" style={{ fontSize: '0.85rem', fontWeight: 600, color: accentColor }}>Forgot password?</Link>
             </div>
 
             <button 
@@ -329,15 +331,15 @@ const Login = () => {
                 transition: 'all 0.3s ease',
               }}
             >
-              {loading ? t('processing') : mode === 'signin' ? t('loginBtn') : t('createAccountBtn')}
+              {loading ? 'PROCESSING...' : mode === 'signin' ? 'LOGIN' : 'CREATE ACCOUNT'}
             </button>
           </form>
 
           {/* Quick Demo Access */}
-          <div style={{ marginTop: '4rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+          <div style={{ marginTop: '2.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
               <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
-              <div style={{ fontSize: '0.65rem', letterSpacing: '0.2em', fontWeight: 700, opacity: 0.3 }}>{t('quickDemoAccess')}</div>
+              <div style={{ fontSize: '0.65rem', letterSpacing: '0.2em', fontWeight: 700, opacity: 0.3 }}>QUICK DEMO ACCESS</div>
               <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
             </div>
             <div style={{ display: 'flex', gap: '1rem' }}>
@@ -347,7 +349,7 @@ const Login = () => {
                 onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
                 onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
               >
-                {t('volunteerDemo')}
+                VOLUNTEER DEMO
               </button>
               <button 
                 onClick={() => handleDemoLogin('ngo')}
@@ -355,7 +357,7 @@ const Login = () => {
                 onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
                 onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
               >
-                {t('ngoDemo')}
+                NGO DEMO
               </button>
             </div>
           </div>

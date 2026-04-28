@@ -86,8 +86,8 @@ const BannerSlider = () => {
         <div key={current} style={{ animation: 'fadeInUp 0.8s ease-out' }}>
           {/* Logo Badge */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-            <div style={{ width: 32, height: 32, background: 'var(--primary-grad)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <img src="/echora-logo.svg" style={{ width: 18, height: 18, filter: 'brightness(0) invert(1)' }} alt="Logo" />
+            <div style={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img src="/echora-logo.jpeg" style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Logo" />
             </div>
             <span style={{ fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.15em', color: '#ffffff', opacity: 0.8 }}>ECHORA</span>
           </div>

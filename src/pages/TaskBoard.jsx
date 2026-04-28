@@ -211,8 +211,7 @@ const TaskBoard = () => {
             value={search} 
             onChange={e => setSearch(e.target.value)} 
             style={{ 
-              paddingLeft: '2.8rem', 
-              height: '48px', 
+              padding: '0.75rem 1rem 0.75rem 2.8rem',
               borderRadius: '10px', 
               width: '100%',
               fontSize: '0.95rem',
@@ -221,79 +220,68 @@ const TaskBoard = () => {
           />
         </div>
         
-        {/* Filter Controls - Two Row Layout */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* First Row - State and Causes */}
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            <select 
-              className="form-select" 
-              value={filterState} 
-              onChange={e => setFilterState(e.target.value)} 
-              style={{ 
-                height: '44px', 
-                borderRadius: '10px',
-                flex: '1',
-                minWidth: '150px',
-                maxWidth: '200px'
-              }}
-            >
-              <option value="">{t('allStatesFilter')}</option>
-              {INDIA_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <select 
-              className="form-select" 
-              value={filterCause} 
-              onChange={e => setFilterCause(e.target.value)} 
-              style={{ 
-                height: '44px', 
-                borderRadius: '10px',
-                flex: '1',
-                minWidth: '150px',
-                maxWidth: '200px'
-              }}
-            >
-              <option value="">{t('allCauses')}</option>
-              {uniqueCauses.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
+        {/* Filter Controls - Single Responsive Row Layout */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          <select 
+            className="form-select" 
+            value={filterState} 
+            onChange={e => setFilterState(e.target.value)} 
+            style={{ 
+              padding: '0.75rem 1.25rem',
+              borderRadius: '10px',
+              width: '100%'
+            }}
+          >
+            <option value="">{t('allStatesFilter')}</option>
+            {INDIA_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
           
-          {/* Second Row - Sort and Toggle */}
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <select 
-              className="form-select" 
-              value={sortBy} 
-              onChange={e => setSortBy(e.target.value)} 
-              style={{ 
-                height: '44px', 
-                borderRadius: '10px',
-                minWidth: '180px',
-                flex: '1'
-              }}
-            >
-              <option value="match">{t('sortBestMatch')}</option>
-              <option value="urgency">{t('sortMostUrgent')}</option>
-              <option value="newest">{t('sortNewest')}</option>
-            </select>
-            <button 
-              onClick={() => setShowMySkillsOnly(!showMySkillsOnly)} 
-              style={{ 
-                height: '44px', 
-                borderRadius: '10px', 
-                padding: '0 1.5rem', 
-                background: showMySkillsOnly ? 'rgba(201,168,76,0.1)' : 'transparent', 
-                color: showMySkillsOnly ? 'var(--gold-mid)' : 'var(--text-muted)', 
-                border: '1px solid', 
-                borderColor: showMySkillsOnly ? 'var(--gold-mid)' : 'var(--border-color)', 
-                fontWeight: 600, 
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                minWidth: '120px',
-                flexShrink: 0
-              }}
-            >
-              {showMySkillsOnly ? t('skillMatchesBtn') : t('allTasksBtn')}
-            </button>
-          </div>
+          <select 
+            className="form-select" 
+            value={filterCause} 
+            onChange={e => setFilterCause(e.target.value)} 
+            style={{ 
+              padding: '0.75rem 1.25rem',
+              borderRadius: '10px',
+              width: '100%'
+            }}
+          >
+            <option value="">{t('allCauses')}</option>
+            {uniqueCauses.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          
+          <select 
+            className="form-select" 
+            value={sortBy} 
+            onChange={e => setSortBy(e.target.value)} 
+            style={{ 
+              padding: '0.75rem 1.25rem',
+              borderRadius: '10px',
+              width: '100%'
+            }}
+          >
+            <option value="match">{t('sortBestMatch')}</option>
+            <option value="urgency">{t('sortMostUrgent')}</option>
+            <option value="newest">{t('sortNewest')}</option>
+          </select>
+          
+          <button 
+            onClick={() => setShowMySkillsOnly(!showMySkillsOnly)} 
+            style={{ 
+              padding: '0.75rem 1.5rem',
+              borderRadius: '10px', 
+              background: showMySkillsOnly ? 'rgba(201,168,76,0.1)' : 'transparent', 
+              color: showMySkillsOnly ? 'var(--gold-mid)' : 'var(--text-muted)', 
+              border: '1px solid', 
+              borderColor: showMySkillsOnly ? 'var(--gold-mid)' : 'var(--border-color)', 
+              fontWeight: 600, 
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              width: '100%'
+            }}
+          >
+            {showMySkillsOnly ? t('skillMatchesBtn') : t('allTasksBtn')}
+          </button>
         </div>
       </div>
 

@@ -46,12 +46,12 @@ const Leaderboard = () => {
           <Trophy style={{ color: 'var(--gold-mid)' }} />
           <span style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--gold-mid)', letterSpacing: '0.1em' }}>{t('hallOfFame')}</span>
         </div>
-        <h1 className="page-title" style={{ fontSize: '3rem', fontWeight: 800 }}>{t('impactLeaders')}</h1>
+        <h1 className="page-title" style={{ fontSize: '3rem', fontWeight: 800, wordBreak: 'break-word' }}>{t('impactLeaders')}</h1>
         <p className="page-subtitle" style={{ fontSize: '1.2rem' }}>{t('mostDedicatedChangemakers')}</p>
       </div>
 
       {/* Top 3 Podium */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '1.5rem', marginBottom: '4rem', padding: '0 1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '1.5rem', marginBottom: '4rem', padding: '0 1rem', flexWrap: 'wrap' }}>
         {/* Silver - Rank 2 */}
         {top3[1] && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', maxWidth: '200px' }}>

@@ -69,11 +69,12 @@ const Sidebar = ({ onClose }) => {
       <div style={{ padding: '2rem 1.5rem 1.5rem', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <img 
-            src="/echora-logo.svg" 
+            src="/echora-logo.jpeg" 
             alt="ECHORA"
             style={{
               width: 42, height: 42,
-              borderRadius: '12px',
+              borderRadius: '50%',
+              objectFit: 'cover',
               boxShadow: 'var(--shadow-primary)', 
               flexShrink: 0,
             }}

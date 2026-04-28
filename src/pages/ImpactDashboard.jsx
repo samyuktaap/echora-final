@@ -51,13 +51,13 @@ const ImpactDashboard = () => {
 
   return (
     <div className="page-container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      <div className="page-header" style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+      <div className="page-header" style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '2rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
             <TrendingUp style={{ color: 'var(--gold-mid)' }} />
             <span style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--gold-mid)', letterSpacing: '0.1em' }}>{t('networkAnalytics')}</span>
           </div>
-          <h1 className="page-title" style={{ fontSize: '3rem', fontWeight: 800 }}>{t('impactCommandCenter')}</h1>
+          <h1 className="page-title" style={{ fontSize: '3rem', fontWeight: 800, wordBreak: 'break-word' }}>{t('impactCommandCenter')}</h1>
           <p className="page-subtitle" style={{ fontSize: '1.2rem' }}>{t('measuringRealWorldChange')}</p>
         </div>
         <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', gap: '1.5rem' }}>
