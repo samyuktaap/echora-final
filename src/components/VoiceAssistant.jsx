@@ -24,7 +24,7 @@ const VoiceAssistant = () => {
     kn: false
   });
   const [missingVoiceWarning, setMissingVoiceWarning] = useState(null);
-  const [geminiKey, setGeminiKey] = useState(import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('gemini_api_key') || '');
+  const [geminiKey, setGeminiKey] = useState(window.CONFIG?.VITE_GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('gemini_api_key') || '');
   const [isAiThinking, setIsAiThinking] = useState(false);
   
   const synthRef = useRef(null);
