@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Volume2, VolumeX, Mic, MicOff, Globe, Play, Pause, Settings, MessageCircle, Send, MessageSquare, X, Trash2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { getBotResponse } from './Chatbot';
 
 const VoiceAssistant = () => {
   const { language: globalLanguage, setLanguage: setGlobalLanguage, t, LANGUAGES } = useLanguage();
@@ -23,10 +24,8 @@ const VoiceAssistant = () => {
     kn: false
   });
   const [missingVoiceWarning, setMissingVoiceWarning] = useState(null);
-  const [geminiKey, setGeminiKey] = useState(window.CONFIG?.VITE_GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('gemini_api_key') || '');
+  const [geminiKey, setGeminiKey] = useState(import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('gemini_api_key') || '');
   const [isAiThinking, setIsAiThinking] = useState(false);
-  const [testStatus, setTestStatus] = useState(null); // null | 'testing' | 'success' | 'error'
-  const [workingModel, setWorkingModel] = useState(localStorage.getItem('gemini_working_model') || null);
   
   const synthRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -104,7 +103,6 @@ const VoiceAssistant = () => {
       
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
-        if (!transcript || !transcript.trim()) return;
         console.log('Recognized:', transcript);
         handleUserInput(transcript);
         setIsListening(false);
@@ -127,148 +125,72 @@ const VoiceAssistant = () => {
     const userMessage = { text: text, sender: 'user', language: selectedLanguage };
     setChatMessages(prev => [...prev, userMessage]);
     
-    // 🛡️ BULLETPROOF KEY RETRIEVAL
-    const currentKey = window.CONFIG?.VITE_GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('gemini_api_key');
-    
     let finalResponse = '';
 
-    if (currentKey) {
+    if (geminiKey) {
       setIsAiThinking(true);
       try {
         const langMap = { en: 'English', hi: 'Hindi', ta: 'Tamil', kn: 'Kannada' };
-        const profileInfo = localStorage.getItem('volunteer_profile') || 'New User';
+        const prompt = `You are the ECHORA AI Assistant, an empathetic and helpful guide for a volunteering platform in India. 
+Respond ONLY in ${langMap[selectedLanguage]}. Be concise (2-3 sentences max).
+User asked: "${text}"`;
+
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
         
-        // Build history-aware contents
-        const historyLimit = 6;
-        const recentHistory = chatMessages.slice(-historyLimit).map(msg => ({
-          role: msg.sender === 'user' ? 'user' : 'model',
-          parts: [{ text: msg.text }]
-        }));
-
-        const systemInstruction = `You are ECHORA AI, a highly versatile and intelligent assistant. 
-        User Profile: ${profileInfo}
-        While your expertise is ECHORA (India's volunteering platform), you can and should help with ANY question the user has (general knowledge, coding, history, etc.).
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message);
         
-        CRITICAL: YOU MUST RESPOND ONLY IN ${langMap[selectedLanguage].toUpperCase()}. 
-        Even if the user asks in a different language, your response must be in ${langMap[selectedLanguage]}.
-        Be creative, intelligent, and helpful.`;
-
-        const contents = [
-          ...recentHistory,
-          { role: 'user', parts: [{ text: `${systemInstruction}\n\nUser Message: "${text}"` }] }
-        ];
-
-        const modelsToTry = workingModel ? [workingModel] : ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-pro'];
-        
-        const fetchWithModel = async (model) => {
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              contents,
-              generationConfig: { temperature: 0.9, topK: 40, topP: 0.95, maxOutputTokens: 1024 }
-            })
-          });
-          if (!res.ok) throw new Error(`Model ${model} failed`);
-          const data = await res.json();
-          if (!data.candidates || !data.candidates[0]?.content?.parts[0]?.text) throw new Error(`Invalid response from ${model}`);
-          return { text: data.candidates[0].content.parts[0].text.replace(/\*/g, ''), model };
-        };
-
-        if (workingModel) {
-          try {
-            const result = await fetchWithModel(workingModel);
-            finalResponse = result.text;
-          } catch (e) {
-            console.warn('Cached model failed, clearing cache...');
-            setWorkingModel(null);
-            localStorage.removeItem('gemini_working_model');
-            // Will fall back to default behavior on next message or we could retry now
-            throw e; 
-          }
-        } else {
-          // Discovery mode: try all in parallel
-          const results = await Promise.any(modelsToTry.map(m => fetchWithModel(m)));
-          finalResponse = results.text;
-          setWorkingModel(results.model);
-          localStorage.setItem('gemini_working_model', results.model);
-        }
+        finalResponse = data.candidates[0].content.parts[0].text.replace(/\*/g, ''); // Strip markdown
       } catch (err) {
         console.error('Gemini error:', err);
-        finalResponse = `API Error: ${err.message || 'Unknown connection problem'}. Please verify your Gemini API key in Settings.`;
+        finalResponse = "I'm having trouble reaching my AI brain right now. Please check your API key or try again later.";
       } finally {
         setIsAiThinking(false);
       }
     } else {
       // Fallback logic
-      const lowerText = text.toLowerCase();
-      if (lowerText.includes('hello') || lowerText.includes('hi') || lowerText.includes('hey')) {
-        finalResponse = aiResponses[selectedLanguage].greeting;
-      } else if (lowerText.includes('help')) {
-        finalResponse = aiResponses[selectedLanguage].help;
+      if (selectedLanguage === 'en') {
+        finalResponse = getBotResponse(text, '').replace(/\*/g, '');
       } else {
-        finalResponse = aiResponses[selectedLanguage].default;
+        setIsAiThinking(true);
+        try {
+          // 1. Translate user input to English to match Chatbot patterns
+          const urlToEn = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${selectedLanguage}&tl=en&dt=t&q=${encodeURIComponent(text)}`;
+          const resToEn = await fetch(urlToEn);
+          const dataToEn = await resToEn.json();
+          let englishInput = text;
+          if (dataToEn && dataToEn[0]) {
+            englishInput = dataToEn[0].map(item => item[0]).join('');
+          }
+          
+          // 2. Get the English rule-based response
+          const englishResponse = getBotResponse(englishInput, '').replace(/\*/g, '');
+          
+          // 3. Translate response back to the selected language
+          const urlToTarget = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${selectedLanguage}&dt=t&q=${encodeURIComponent(englishResponse)}`;
+          const resToTarget = await fetch(urlToTarget);
+          const dataToTarget = await resToTarget.json();
+          if (dataToTarget && dataToTarget[0]) {
+            finalResponse = dataToTarget[0].map(item => item[0]).join('');
+          } else {
+            finalResponse = aiResponses[selectedLanguage].default;
+          }
+        } catch (e) {
+          console.error('Translation error:', e);
+          finalResponse = aiResponses[selectedLanguage].default;
+        } finally {
+          setIsAiThinking(false);
+        }
       }
     }
     
     const aiMessage = { text: finalResponse, sender: 'ai', language: selectedLanguage };
     setChatMessages(prev => [...prev, aiMessage]);
     speak(finalResponse);
-  };
-
-  const testConnection = async () => {
-    if (!geminiKey) {
-      setTestStatus('error');
-      setTimeout(() => setTestStatus(null), 3000);
-      return;
-    }
-    setTestStatus('testing');
-    try {
-      const models = ['gemini-2.0-flash', 'gemini-flash-latest', 'gemini-pro', 'gemini-1.5-flash'];
-      let success = false;
-      let lastError = '';
-
-      for (const model of models) {
-        try {
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: 'Hello' }] }] })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-              success = true;
-              break;
-            }
-          } else {
-            const errData = await res.json();
-            lastError = errData.error?.message || res.statusText;
-          }
-        } catch (e) {
-          lastError = e.message;
-        }
-      }
-
-      if (success) {
-        setTestStatus('success');
-      } else {
-        throw new Error(lastError || 'All models failed');
-      }
-    } catch (err) {
-      console.error('Test failed:', err);
-      setTestStatus('error');
-    }
-    setTimeout(() => setTestStatus(null), 3000);
-  };
-
-  const reinitializeAudio = () => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const voices = window.speechSynthesis.getVoices();
-      setAvailableVoices(voices);
-      alert('Audio system re-initialized. Please try speaking now.');
-    }
   };
 
   const speak = (text) => {
@@ -485,6 +407,8 @@ const VoiceAssistant = () => {
               </div>
             </div>
 
+
+
             {/* Current Language Display */}
             <div style={{ 
               padding: '0.75rem', 
@@ -660,7 +584,7 @@ const VoiceAssistant = () => {
           height: '400px',
           display: 'flex',
           flexDirection: 'column',
-          animation: 'popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
+          animation: 'slideDown 0.3s ease'
         }}>
           <div className="card-header" style={{ 
             display: 'flex', 
@@ -711,7 +635,7 @@ const VoiceAssistant = () => {
                 }}
               >
                 <X size={14} />
-                {t('close')}
+                Close
               </button>
             </div>
           </div>
@@ -739,7 +663,7 @@ const VoiceAssistant = () => {
             {isAiThinking && (
               <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '0.75rem' }}>
                 <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem 1rem', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  {t('thinking')}
+                  Thinking...
                 </div>
               </div>
             )}

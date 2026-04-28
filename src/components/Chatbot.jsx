@@ -58,7 +58,7 @@ const expandAbbreviations = (text) => {
 
 const BOT_RESPONSES = [
   // Greetings
-  { patterns: ['hello', 'hi', 'hey', 'howdy', 'namaste', 'hola'], response: (name) => `Hello${name ? `, ${name}` : ''}! I'm **VolBot**, your volunteering assistant. I can help you with:\n\n• Finding tasks & NGO requests\n• Managing your profile\n• Map & location info\n• Points & leaderboard\n• Weekend meetups\n\nWhat would you like to know?` },
+  { patterns: ['hello', 'hi', 'hey', 'howdy', 'namaste', 'hola'], response: (name) => `Hello${name ? `, ${name}` : ''}! I'm **ECHORA AI**, your volunteering assistant. I can help you with:\n\n• Finding tasks & NGO requests\n• Managing your profile\n• Map & location info\n• Points & leaderboard\n• Weekend meetups\n\nWhat would you like to know?` },
 
   // Help
   { patterns: ['help', 'what can you do', 'commands', 'options', 'assist'], response: () => `Here's what I can help with:\n\n**For Volunteers:**\n• How to sign up & complete profile\n• Find tasks near you\n• Check points & badges\n• Join meetups\n\n**For NGOs:**\n• Submit volunteer requests\n• Track task status\n• Find skilled volunteers\n\nJust ask me anything!` },
@@ -118,7 +118,7 @@ const BOT_RESPONSES = [
   { patterns: [], response: () => `🤔 I'm not sure about that one! Here are some things I can help with:\n\n• **tasks** — Find volunteer opportunities\n• **profile** — Manage your profile\n• **map** — View locations & heatmap\n• **meetups** — Weekend events\n• **points** — Gamification & badges\n• **ngo** — NGO request system\n\nTry asking about any of these!` },
 ];
 
-const getBotResponse = (userInput, profileName) => {
+export const getBotResponse = (userInput, profileName) => {
   const expanded = expandAbbreviations(userInput);
   const lower = expanded.toLowerCase();
 
@@ -136,7 +136,7 @@ const Chatbot = () => {
   const { profile } = useAuth();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { from: 'bot', text: `👋 Hi${profile?.name ? `, ${profile.name.split(' ')[0]}` : ''}! I'm **VolBot**. Ask me about tasks, NGOs, your profile, the map, meetups — anything! I also understand abbreviations like "ngo", "otp", "pts", "fa", etc.` }
+    { from: 'bot', text: `👋 Hi${profile?.name ? `, ${profile.name.split(' ')[0]}` : ''}! I'm **ECHORA AI**. Ask me about tasks, NGOs, your profile, the map, meetups — anything! I also understand abbreviations like "ngo", "otp", "pts", "fa", etc.` }
   ]);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
@@ -146,55 +146,20 @@ const Chatbot = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, typing]);
 
-  const sendMessage = async () => {
-    const trimmed = input.trim();
+  const sendMessage = (text) => {
+    const msg = typeof text === 'string' ? text : input;
+    const trimmed = msg.trim();
     if (!trimmed) return;
 
     setMessages(prev => [...prev, { from: 'user', text: trimmed }]);
     setInput('');
     setTyping(true);
 
-    const geminiKey = window.CONFIG?.VITE_GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
-
-    if (geminiKey) {
-      try {
-        const history = messages.slice(-5).map(m => ({
-          role: m.from === 'user' ? 'user' : 'model',
-          parts: [{ text: m.text }]
-        }));
-
-        const systemInstruction = `You are VolBot, the highly intelligent and versatile AI assistant for ECHORA. 
-        While you are an expert on India's volunteering platform (ECHORA), you can and should help the user with ANY question they have (general knowledge, advice, coding, history, etc.). 
-        User: ${profile?.name || 'Volunteer'}. 
-        Be professional, engaging, and use emojis!`;
-
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [...history, { role: 'user', parts: [{ text: `${systemInstruction}\n\nUser: ${trimmed}` }] }]
-          })
-        });
-
-        const data = await res.json();
-        const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm having a bit of trouble thinking right now. Could you try again?";
-        
-        setTyping(false);
-        setMessages(prev => [...prev, { from: 'bot', text: responseText }]);
-      } catch (err) {
-        console.error('Chatbot AI Error:', err);
-        const fallback = getBotResponse(trimmed, profile?.name?.split(' ')[0]);
-        setTyping(false);
-        setMessages(prev => [...prev, { from: 'bot', text: fallback }]);
-      }
-    } else {
-      // Fallback to local logic if no key
-      setTimeout(() => {
-        const response = getBotResponse(trimmed, profile?.name?.split(' ')[0]);
-        setTyping(false);
-        setMessages(prev => [...prev, { from: 'bot', text: response }]);
-      }, 600);
-    }
+    setTimeout(() => {
+      const response = getBotResponse(trimmed, profile?.name?.split(' ')[0]);
+      setTyping(false);
+      setMessages(prev => [...prev, { from: 'bot', text: response }]);
+    }, 700 + Math.random() * 500);
   };
 
   const handleKeyDown = (e) => {
@@ -227,7 +192,7 @@ const Chatbot = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <div style={{ fontSize: '1.5rem' }}>🤖</div>
               <div>
-                <div style={{ fontWeight: 700, color: 'white', fontSize: '0.95rem' }}>VolBot</div>
+                <div style={{ fontWeight: 700, color: 'white', fontSize: '0.95rem' }}>ECHORA AI</div>
                 <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)' }}>● Online — understands abbreviations</div>
               </div>
             </div>
@@ -258,7 +223,7 @@ const Chatbot = () => {
           {/* Quick replies */}
           <div style={{ padding: '0.5rem 1rem', display: 'flex', gap: '0.4rem', flexWrap: 'wrap', borderTop: '1px solid var(--border-color)' }}>
             {['Tasks', 'Map', 'Points', 'Meetups', 'Help'].map(q => (
-              <button key={q} onClick={() => { setInput(q); setTimeout(sendMessage, 50); }}
+              <button key={q} onClick={() => sendMessage(q)}
                 style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem', borderRadius: '20px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                 {q}
               </button>
@@ -281,7 +246,7 @@ const Chatbot = () => {
       )}
 
       {/* FAB */}
-      <button className="chatbot-fab" onClick={() => setOpen(o => !o)} title="Chat with VolBot">
+      <button className="chatbot-fab" onClick={() => setOpen(o => !o)} title="Chat with ECHORA AI">
         {open ? '✕' : '💬'}
       </button>
     </>
